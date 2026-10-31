@@ -1,0 +1,2 @@
+# Used by `npm run preview` (wrangler). Copy to .dev.vars.
+NEXTJS_ENV=development

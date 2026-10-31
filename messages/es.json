@@ -1,0 +1,98 @@
+{
+  "Metadata": {
+    "title": "CamiloShop — Tecnología, belleza y moda urbana",
+    "description": "Tienda online de tecnología, cosméticos y ropa con estilo urbano. Proyecto de portafolio con pagos en modo sandbox."
+  },
+  "Common": {
+    "skipToContent": "Saltar al contenido principal",
+    "portfolioNotice": "Proyecto de portafolio: los pagos funcionan en modo sandbox y no se cobra dinero real.",
+    "comingSoon": "Disponible pronto"
+  },
+  "Header": {
+    "searchLabel": "Buscar productos",
+    "searchPlaceholder": "Busca audífonos, perfumes, tenis…",
+    "searchSubmit": "Buscar",
+    "cart": "Carrito",
+    "account": "Mi cuenta",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "menuTitle": "Menú",
+    "mainNav": "Navegación principal"
+  },
+  "Categories": {
+    "technology": "Tecnología",
+    "cosmetics": "Cosméticos",
+    "fashion": "Ropa",
+    "audio": "Audio",
+    "phones": "Celulares y accesorios",
+    "computing": "Computación",
+    "wearables": "Wearables",
+    "gaming": "Gaming",
+    "skincare": "Skincare",
+    "makeup": "Maquillaje",
+    "fragrances": "Fragancias",
+    "hair": "Cabello",
+    "men": "Hombre",
+    "women": "Mujer",
+    "footwear": "Calzado",
+    "accessories": "Accesorios"
+  },
+  "Preferences": {
+    "theme": "Cambiar tema claro u oscuro",
+    "language": "Idioma",
+    "currency": "Moneda",
+    "currencyNote": "Los precios en USD son aproximados. El cobro siempre se realiza en COP."
+  },
+  "Price": {
+    "approx": "aprox."
+  },
+  "Home": {
+    "heroEyebrow": "Nueva temporada",
+    "heroTitle": "Lujo urbano para tu día a día",
+    "heroText": "Tecnología, belleza y moda seleccionadas con estilo. Envío gratis en compras desde $200.000.",
+    "heroCta": "Explorar tecnología",
+    "heroSecondary": "Ver moda",
+    "categoriesTitle": "Compra por categoría",
+    "categoriesText": "Tres mundos, un mismo estilo.",
+    "featuredTitle": "Destacados",
+    "featuredText": "Lo más buscado de la semana.",
+    "promoTitle": "10% de descuento en tu primera compra",
+    "promoText": "Usa el cupón {code} al pagar.",
+    "benefitsTitle": "Compra con confianza",
+    "benefitShippingTitle": "Envío gratis",
+    "benefitShippingText": "En compras desde $200.000 a toda Colombia.",
+    "benefitPaymentTitle": "Pagos seguros",
+    "benefitPaymentText": "Tarjeta, PSE o contra entrega.",
+    "benefitReturnsTitle": "Devoluciones fáciles",
+    "benefitReturnsText": "Derecho de retracto de 5 días hábiles."
+  },
+  "Product": {
+    "new": "Nuevo",
+    "discount": "-{percent}%",
+    "previousPrice": "Precio anterior",
+    "currentPrice": "Precio actual"
+  },
+  "Footer": {
+    "tagline": "Tecnología, belleza y moda con estilo urbano.",
+    "shop": "Tienda",
+    "help": "Ayuda",
+    "terms": "Términos y condiciones",
+    "privacy": "Tratamiento de datos",
+    "returns": "Devoluciones y retracto",
+    "rights": "© {year} CamiloShop. Proyecto de portafolio."
+  },
+  "NotFound": {
+    "title": "Página no encontrada",
+    "text": "La página que buscas no existe o fue movida.",
+    "cta": "Volver al inicio"
+  },
+  "Error": {
+    "title": "Algo salió mal",
+    "text": "Ocurrió un error inesperado. Puedes intentarlo de nuevo.",
+    "retry": "Reintentar",
+    "home": "Ir al inicio"
+  },
+  "Loading": {
+    "label": "Cargando contenido"
+  }
+}

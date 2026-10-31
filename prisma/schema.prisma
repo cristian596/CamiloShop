@@ -1,0 +1,21 @@
+// Phase 1 spike schema: a single model to validate Prisma 7 + adapter-pg + Hyperdrive
+// on Cloudflare Workers. The full schema arrives in phase 2a.
+//
+// OpenNext patches the generated client for workerd, which only works with the
+// default output location of `prisma-client-js` (see docs/decisions.md).
+
+generator client {
+  provider      = "prisma-client-js"
+  // Smaller WASM query compiler: keeps the Worker under the Free plan limit.
+  compilerBuild = "small"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}

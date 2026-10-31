@@ -1,0 +1,52 @@
+/*
+ * Single stylesheet allowed in the project: Tailwind entry point + theme tokens.
+ * No custom rules live here — only design tokens and their dark-mode values.
+ */
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand palette (fixed) */
+  --color-night: #0b0f19;
+  --color-snow: #f8fafc;
+  --color-violet: #7c3aed;
+  --color-violet-strong: #6d28d9;
+  --color-cyan: #22d3ee;
+  --color-pink: #f472b6;
+
+  /* Semantic tokens — light values; dark values are below. */
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f1f5f9;
+  --color-line: #e2e8f0;
+  --color-fg: #0b0f19;
+  --color-muted: #475569;
+  /* Accent colors used as TEXT on canvas, tuned for WCAG AA in each theme. */
+  --color-primary-fg: #6d28d9;
+  --color-cyan-fg: #0e7490;
+  --color-pink-fg: #be185d;
+  /* Buttons and headers: violet background with white text in both themes (≈5.7:1). */
+  --color-primary: #7c3aed;
+  --color-primary-hover: #6d28d9;
+  --color-on-primary: #ffffff;
+  --color-focus: #7c3aed;
+}
+
+@layer theme {
+  .dark {
+    --color-canvas: #0b0f19;
+    --color-surface: #111727;
+    --color-surface-raised: #182035;
+    --color-line: #263049;
+    --color-fg: #f8fafc;
+    --color-muted: #a3b0c5;
+    --color-primary-fg: #a78bfa;
+    --color-cyan-fg: #22d3ee;
+    --color-pink-fg: #f472b6;
+    --color-focus: #22d3ee;
+  }
+}

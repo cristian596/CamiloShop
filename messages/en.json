@@ -1,0 +1,98 @@
+{
+  "Metadata": {
+    "title": "CamiloShop — Tech, beauty and urban fashion",
+    "description": "Online store for tech, cosmetics and clothing with an urban style. Portfolio project with sandbox payments."
+  },
+  "Common": {
+    "skipToContent": "Skip to main content",
+    "portfolioNotice": "Portfolio project: payments run in sandbox mode and no real money is charged.",
+    "comingSoon": "Coming soon"
+  },
+  "Header": {
+    "searchLabel": "Search products",
+    "searchPlaceholder": "Search headphones, perfumes, sneakers…",
+    "searchSubmit": "Search",
+    "cart": "Cart",
+    "account": "My account",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menuTitle": "Menu",
+    "mainNav": "Main navigation"
+  },
+  "Categories": {
+    "technology": "Technology",
+    "cosmetics": "Cosmetics",
+    "fashion": "Clothing",
+    "audio": "Audio",
+    "phones": "Phones & accessories",
+    "computing": "Computing",
+    "wearables": "Wearables",
+    "gaming": "Gaming",
+    "skincare": "Skincare",
+    "makeup": "Makeup",
+    "fragrances": "Fragrances",
+    "hair": "Hair",
+    "men": "Men",
+    "women": "Women",
+    "footwear": "Footwear",
+    "accessories": "Accessories"
+  },
+  "Preferences": {
+    "theme": "Toggle light or dark theme",
+    "language": "Language",
+    "currency": "Currency",
+    "currencyNote": "USD prices are approximate. You are always charged in COP."
+  },
+  "Price": {
+    "approx": "approx."
+  },
+  "Home": {
+    "heroEyebrow": "New season",
+    "heroTitle": "Urban luxury for every day",
+    "heroText": "Tech, beauty and fashion curated with style. Free shipping on orders from COP 200,000.",
+    "heroCta": "Explore tech",
+    "heroSecondary": "Shop fashion",
+    "categoriesTitle": "Shop by category",
+    "categoriesText": "Three worlds, one style.",
+    "featuredTitle": "Featured",
+    "featuredText": "This week's most wanted.",
+    "promoTitle": "10% off your first order",
+    "promoText": "Use coupon {code} at checkout.",
+    "benefitsTitle": "Shop with confidence",
+    "benefitShippingTitle": "Free shipping",
+    "benefitShippingText": "On orders from COP 200,000 anywhere in Colombia.",
+    "benefitPaymentTitle": "Secure payments",
+    "benefitPaymentText": "Card, PSE or cash on delivery.",
+    "benefitReturnsTitle": "Easy returns",
+    "benefitReturnsText": "5 business-day right of withdrawal."
+  },
+  "Product": {
+    "new": "New",
+    "discount": "-{percent}%",
+    "previousPrice": "Previous price",
+    "currentPrice": "Current price"
+  },
+  "Footer": {
+    "tagline": "Tech, beauty and fashion with an urban style.",
+    "shop": "Shop",
+    "help": "Help",
+    "terms": "Terms and conditions",
+    "privacy": "Data processing policy",
+    "returns": "Returns and withdrawal",
+    "rights": "© {year} CamiloShop. Portfolio project."
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "text": "The page you are looking for does not exist or has moved.",
+    "cta": "Back to home"
+  },
+  "Error": {
+    "title": "Something went wrong",
+    "text": "An unexpected error occurred. You can try again.",
+    "retry": "Try again",
+    "home": "Go home"
+  },
+  "Loading": {
+    "label": "Loading content"
+  }
+}
