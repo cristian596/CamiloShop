@@ -3,10 +3,18 @@
 import { ThemeProvider } from "next-themes";
 import { useEffect, type ReactNode } from "react";
 import { usePreferences } from "@/stores/preferences";
+import { useRecentlyViewed } from "@/stores/recently-viewed";
+import { StoreConfigProvider } from "./store-config";
 
-export function Providers({ children }: { children: ReactNode }) {
+interface ProvidersProps {
+  usdRate: number;
+  children: ReactNode;
+}
+
+export function Providers({ usdRate, children }: ProvidersProps) {
   useEffect(() => {
     void usePreferences.persist.rehydrate();
+    void useRecentlyViewed.persist.rehydrate();
   }, []);
 
   return (
@@ -16,7 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
       enableSystem={false}
       disableTransitionOnChange
     >
-      {children}
+      <StoreConfigProvider value={{ usdRate }}>{children}</StoreConfigProvider>
     </ThemeProvider>
   );
 }

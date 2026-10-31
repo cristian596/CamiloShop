@@ -1,7 +1,8 @@
 import { fileURLToPath } from "node:url";
+import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -9,6 +10,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts", "src/**/*.test.ts"],
+    include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts", "src/**/*.test.ts"],
+    // Exposes .env.local to integration tests; they skip themselves when it is empty.
+    env: loadEnv(mode, process.cwd(), ""),
   },
-});
+}));

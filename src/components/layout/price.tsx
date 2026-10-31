@@ -2,10 +2,10 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useSyncExternalStore } from "react";
-import { publicEnv } from "@/lib/env";
 import { formatPrice } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import { usePreferences } from "@/stores/preferences";
+import { useStoreConfig } from "./store-config";
 
 const subscribeHydration = (onChange: () => void) =>
   usePreferences.persist.onFinishHydration(onChange);
@@ -27,7 +27,7 @@ export function Price({ amount, className }: PriceProps) {
     () => false,
   );
   const currency = hydrated ? selected : "COP";
-  const usdRate = publicEnv.NEXT_PUBLIC_DEFAULT_USD_RATE;
+  const { usdRate } = useStoreConfig();
 
   return (
     <span className={cn("tabular-nums", className)}>

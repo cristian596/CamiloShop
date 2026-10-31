@@ -50,7 +50,82 @@ Alternativas si algún día se prefiere Turbopack: activar el Modo de Desarrolla
 - **Hyperdrive en local:** wrangler exige `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` incluso para `next build` y `next dev`.
 - **Cliente de Prisma por request:** en Workers no se pueden reutilizar conexiones TCP entre requests. `getDb()` usa `cache()` de React para deduplicar dentro de un render, y `/api/health` hace `$disconnect()` en `waitUntil`.
 
-## Pendiente de confirmar con tus cuentas
+## Verificación con cuentas reales (31 de octubre de 2026)
 
-- [ ] `/api/health` contra Supabase real vía Hyperdrive: latencia y `{ db: "ok" }`.
-- [ ] Deploy real a `*.workers.dev` para confirmar el tamaño que reporta Cloudflare.
+- **Deploy:** `https://camiloshop.camilithopks6.workers.dev`. Cloudflare reportó 2,13 MiB comprimido y un _startup time_ de 13 ms.
+- **`/api/health` en producción (Hyperdrive → Supabase `us-west-2`):** `{ db: "ok" }`. La primera petición tardó 230 ms; las siguientes, entre 3 y 25 ms. Hyperdrive mantiene un pool de conexiones y además cachea las lecturas, así que ese número tan bajo de `SELECT 1` sale en parte de la caché. Las consultas reales del catálogo se medirán en la fase 2a.
+- **Worker local (workerd) sin Hyperdrive:** unos 700 ms por petición, porque cada request abre una conexión TLS nueva hasta Oregón.
+- **Rutas:** `/` → 307 `/es`, `/es` y `/en` → 200, ruta inexistente → 404, y headers de seguridad presentes.
+- **RLS:** la tabla `Setting` tiene RLS activo sin políticas. Con la anon key, `SELECT` devuelve `[]` y `INSERT` es rechazado (`42501`). Toda tabla nueva del esquema `public` debe nacer con RLS.
+- **Región:** el proyecto de Supabase quedó en `us-west-2` (Oregón) y no en `sa-east-1`. Funciona, pero suma latencia desde Colombia en las consultas que no se cachean.
+- **Deploy desde Windows:** `opennextjs-cloudflare deploy` también exige `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` en el entorno del proceso; no lee `.env.local`.
+
+# Fase 2a — Esquema, seed y listado
+
+## Migraciones: Prisma Migrate + SQL escrito a mano en la misma migración
+
+- La migración `prisma/migrations/20261031120000_init` se generó con `prisma migrate diff --from-empty`. Al final se le agregó a mano lo que Prisma no sabe expresar: extensiones (`pg_trgm` y `unaccent` en el esquema `extensions`), la función `immutable_unaccent()`, índices GIN trigram sobre los nombres, CHECKs (stock ≥ 0, totales coherentes, rating 1–5…) y **RLS en las 21 tablas**.
+- Un solo historial de migraciones en lugar de una carpeta `supabase/migrations` aparte, para que el esquema y sus políticas no se desincronicen.
+- Se aplica con `npm run db:migrate` (`prisma migrate deploy`), que no necesita _shadow database_ (Supabase no permite crearla fácilmente).
+- **Comprobado:** `npm run db:diff` sale vacío después de aplicar la migración, así que Prisma ignora los CHECKs y los índices de expresión y no intentará borrarlos. Aun así, cada migración nueva generada con `db:diff` debe revisarse antes de aplicarla.
+- La tabla `Setting` del spike de la fase 1 estaba vacía; se eliminó para que la cree la migración `init`.
+
+## RLS
+
+- Prisma se conecta como dueño de las tablas y **se salta RLS**; la autorización de esas rutas va en el servidor. RLS protege la Data API de Supabase, a la que se llega con la anon key pública.
+- **Lectura pública:** categorías, marcas, productos activos con sus imágenes y variantes, reseñas, preguntas y respuestas.
+- **Lectura solo del dueño:** perfil, direcciones, favoritos, pedidos (con sus ítems, historial y pagos) y cupones canjeados.
+- **Sin políticas (solo servidor):** `Setting`, `ShippingRate`, `Coupon`, `WebhookEvent` y `RateLimitHit`.
+- **Ninguna política de escritura:** toda escritura pasa por el servidor.
+- Lo verifica `tests/integration/rls.test.ts` (11 casos con la anon key real). Se omite solo si no hay variables de Supabase.
+
+## Datos de catálogo
+
+- **Precios:** enteros en COP con IVA incluido. Las variantes pueden sobrescribir el precio (`priceOverride`), por ejemplo 256 GB o 100 ml.
+- **Colores:** se guardan como clave (`black`, `navy`…) y se traducen en `messages/*.json`. Los swatches usan clases literales de Tailwind (`COLOR_SWATCH_CLASSES`), no `style`, y un test garantiza que coinciden con los hex.
+- **`ratingAvg` / `ratingCount` / `soldCount`:** son valores de demostración sembrados. En la fase 7a el rating se recalculará a partir de reseñas reales.
+- **Imágenes:** 40 fotos de Unsplash (licencia gratuita, sin Unsplash+), revisadas una por una para **descartar marcas registradas visibles**. Se reemplazaron fotos con logos de Nike, Puma, Ray-Ban, Chanel, Armani, Too Faced, Bobbi Brown y Curology, entre otras. Por eso algunos productos del plan cambiaron: los controles pasaron a ser diadema y monitor, y los tenis, tacones y botas.
+- **Seed idempotente:** hace upsert por `slug`, `sku`, `code` y `city`. Si se renombra el slug de un producto, el anterior queda en la base y hay que borrarlo a mano (se hizo con 4 productos durante esta fase).
+
+## Listado
+
+- **Filtros en la URL** con un formulario GET: funcionan sin JavaScript y cada estado es un enlace que se puede compartir. `CleanGetForm` quita los campos vacíos del query.
+- **El parser (`parseListingParams`) nunca lanza errores:** descarta valores inválidos, corrige rangos invertidos y limita la cantidad de valores. Tiene tests.
+- **Talla y color filtran sobre la misma variante.** Por ejemplo, "M negra" no incluye una prenda que solo tenga M en blanco y negro en XL.
+- **404 reales:** la categoría se resuelve **antes** del streaming. Solo los resultados van dentro de `<Suspense>` (con el skeleton), con una `key` por query para que el skeleton vuelva a aparecer con cada filtro. No se usa `loading.tsx` en rutas que pueden dar 404.
+- **Render dinámico:** el layout de `[locale]` usa `dynamic = "force-dynamic"`, porque todas las páginas leen datos vivos (tasa USD, precios, stock) y todavía no hay caché incremental configurada en Cloudflare.
+- **Tasa USD:** se lee de `Setting.usdRate` en el layout y llega a los componentes por contexto (`StoreConfigProvider`). Si la base falla, se usa la del entorno.
+- **Imágenes con `next/image`:** usan un loader propio que pide a Unsplash el ancho exacto (`w`, `q`, `auto=format`), así que no hace falta Cloudflare Images.
+- **Tamaño del Worker:** 2,14 MiB comprimido (+18 KiB respecto a la fase 1).
+
+# Fase 2b — Ficha de producto, búsqueda, relacionados y vistos
+
+## Ficha de producto (`/p/[slug]`)
+
+- **404 real** para productos inexistentes o inactivos: el producto se resuelve antes del streaming. Solo los relacionados van en `<Suspense>`.
+- **Variantes:** la lógica pura vive en `features/catalog/variants.ts` y tiene tests. Al cambiar de talla se conserva el color si esa combinación existe; si no, se elige una variante con stock. Las opciones agotadas se muestran tachadas, pero se pueden seleccionar para ver su estado.
+- **Variante en la URL** (`?variant=<sku>`): se actualiza con `history.replaceState`, sin pedir nada al servidor, y el servidor la lee para el render inicial. Así un enlace compartido abre la variante exacta sin desajustes de hidratación.
+- **Precio:** usa el `priceOverride` de la variante cuando existe. El precio anterior solo se muestra si es mayor que el actual.
+- **"Agregar al carrito"** está deshabilitado con una nota visible ("disponible muy pronto") hasta la fase 4.
+- **Compartir:** usa la Web Share API si existe y, si no, copia el enlace. El resultado se anuncia con `role="status"`.
+- **Metadatos:** título, descripción, canonical, `hreflang` y Open Graph con la imagen recortada a 1200×630 por Unsplash. El JSON-LD `Product` llega en la fase 7a.
+
+## Búsqueda
+
+- **Sin servicio externo:** Postgres con `unaccent` + `pg_trgm`. Cada palabra debe aparecer en el nombre (es o en), la marca o la categoría. El orden es por `word_similarity` y luego por más vendidos. `EXPLAIN` confirma que se usa el índice `Product_nameEs_trgm_idx`.
+- **Seguridad:** las consultas usan `$queryRaw` con parámetros, nunca concatenación. Los comodines `%` y `_` del usuario se escapan, y la consulta se limita a 80 caracteres y 6 palabras.
+- **Sugerencias:** `GET /api/search/suggest?q=` devuelve hasta 6 productos con `Cache-Control: public, max-age=60`.
+- **Buscador del header:** sigue el patrón combobox ARIA (lista con autocompletado), con `aria-activedescendant`, flechas, Enter y Escape, y un aviso para lectores de pantalla. La última opción es "Ver todos los resultados". Sin JavaScript es un formulario GET normal a `/search`.
+- **Página `/search`:** es `noindex, follow`, porque las páginas de resultados son contenido duplicado casi infinito.
+
+## Relacionados y vistos recientemente
+
+- **Relacionados**, en orden de prioridad: misma subcategoría, misma marca y resto de la categoría padre. Dentro de cada grupo, los más vendidos.
+- **Vistos recientemente:** un store de Zustand persistido en localStorage, con un máximo de 12 y sin duplicados. Se muestra en la ficha (sin repetir el producto actual) y en la home. Se registra la vista solo **después** de que el store se hidrata, porque el efecto del hijo corre antes que el `rehydrate()` del padre y, si no, la vista se perdería.
+
+## Otros
+
+- `Pagination` ahora recibe `hrefForPage`, así sirve para categorías y búsqueda.
+- Un test verifica que `messages/es.json` y `messages/en.json` tengan exactamente las mismas claves y ningún texto vacío.
+- **Tamaño del Worker:** 2,16 MiB comprimido.
+- **URL canónica:** `NEXT_PUBLIC_SITE_URL` se incrusta al compilar. Para el deploy hay que compilar con la URL pública (ver README); si no, el canonical y el Open Graph apuntan a `localhost`.

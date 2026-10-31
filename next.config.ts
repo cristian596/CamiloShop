@@ -16,6 +16,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: {
+    // Resizing happens on the image CDN (see src/lib/image-loader.ts).
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.ts",
+  },
   // Lets OpenNext patch and bundle the Prisma client for workerd (see OpenNext DB how-to).
   serverExternalPackages: ["@prisma/client", ".prisma/client"],
   async headers() {

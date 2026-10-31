@@ -8,8 +8,9 @@ import { buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { focusRing } from "@/components/ui/styles";
-import { MOCK_FEATURED } from "@/features/catalog/mock-products";
-import { ProductCard } from "@/features/catalog/product-card";
+import { ProductGrid } from "@/features/catalog/product-grid";
+import { getFeaturedProducts } from "@/features/catalog/queries";
+import { RecentlyViewed } from "@/features/catalog/recently-viewed";
 
 // Each module has a single dominant neon accent:
 // hero + featured → violet, categories + benefits → cyan, promo → pink.
@@ -17,7 +18,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   // The locale segment is validated in the layout before any page renders.
   setRequestLocale(locale as Locale);
-  const t = await getTranslations("Home");
+  const [t, featured] = await Promise.all([getTranslations("Home"), getFeaturedProducts(8)]);
   const tc = await getTranslations("Categories");
 
   const benefits = [
@@ -101,13 +102,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             title={t("featuredTitle")}
             description={t("featuredText")}
           />
-          <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {MOCK_FEATURED.map((product) => (
-              <li key={product.id} className="flex">
-                <ProductCard product={product} />
-              </li>
-            ))}
-          </ul>
+          <ProductGrid products={featured} priorityCount={0} />
         </Container>
       </section>
 
@@ -143,6 +138,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </ul>
         </Container>
       </section>
+      <RecentlyViewed />
     </>
   );
 }

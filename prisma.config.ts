@@ -6,7 +6,10 @@ config({ path: [".env.local", ".env"], quiet: true });
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrations: { path: "prisma/migrations" },
+  migrations: {
+    path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
+  },
   datasource: {
     // Migrations need a direct (session) connection, never the transaction pooler.
     url: process.env.DIRECT_URL ?? "",

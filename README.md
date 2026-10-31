@@ -2,7 +2,7 @@
 
 E-commerce de portafolio con estilo lujoso y urbano: tecnología, cosméticos y ropa. Construido con Next.js 16 (App Router), TypeScript estricto, Tailwind CSS v4, Supabase, Prisma y Cloudflare Workers (OpenNext).
 
-> **Estado:** fase 1 de 7 (base, diseño y spike de infraestructura). La home usa datos de ejemplo; el catálogo real llega en la fase 2a.
+> **Estado:** fase 2b de 7 (catálogo completo: listado, ficha de producto, búsqueda con sugerencias, relacionados y vistos recientemente). Auth llega en la fase 3.
 > Los pagos funcionarán en **modo sandbox**: no se cobra dinero real.
 
 ## Stack
@@ -12,7 +12,7 @@ E-commerce de portafolio con estilo lujoso y urbano: tecnología, cosméticos y 
 | Framework      | Next.js 16 (App Router) + React 19 + TypeScript 6 (strict)                          |
 | Estilos        | Tailwind CSS v4 (solo utilidades; `src/app/globals.css` contiene únicamente tokens) |
 | i18n           | next-intl: español (`/es`, principal) e inglés (`/en`)                              |
-| Estado global  | Zustand (moneda; carrito y vistos recientemente en fases siguientes)                |
+| Estado global  | Zustand (moneda y vistos recientemente; el carrito llega en la fase 4)              |
 | Base de datos  | Supabase Postgres + Prisma 7 (`@prisma/adapter-pg`) vía Cloudflare Hyperdrive       |
 | Auth / Storage | Supabase Auth y Storage (fase 3 y 6)                                                |
 | Despliegue     | Cloudflare Workers con `@opennextjs/cloudflare`                                     |
@@ -55,6 +55,10 @@ Abre http://localhost:3000; te redirige a `/es`.
 | `npm run typecheck`  | TypeScript sin emitir archivos                                    |
 | `npm test`           | Tests unitarios con Vitest                                        |
 | `npm run format`     | Prettier (ordena las clases de Tailwind)                          |
+| `npm run db:migrate` | Aplica las migraciones pendientes (`prisma migrate deploy`)       |
+| `npm run db:seed`    | Carga o actualiza el catálogo de ejemplo (idempotente)            |
+| `npm run db:diff`    | Muestra el SQL necesario para llevar la base al esquema actual    |
+| `npm run db:status`  | Estado de las migraciones                                         |
 | `npm run cf:build`   | Build de OpenNext para Cloudflare                                 |
 | `npm run cf:size`    | Deploy en seco: muestra el tamaño comprimido del Worker           |
 | `npm run preview`    | Build de OpenNext y Worker local en workerd                       |
@@ -78,20 +82,32 @@ Abre http://localhost:3000; te redirige a `/es`.
 
    Copia el `id` que devuelve y reemplaza `00000000000000000000000000000000` en `wrangler.jsonc`.
 
-4. Crea la tabla del spike:
+4. Crea las tablas y carga el catálogo de ejemplo:
 
    ```bash
-   npm run db:push
+   npm run db:migrate
+   ```
+
+   ```bash
+   npm run db:seed
    ```
 
 5. Comprueba la conexión en local: `npm run dev` y abre http://localhost:3000/api/health. Debe responder `{"status":"ok","db":"ok",...}`.
-6. Despliega:
+6. Despliega. El CLI de OpenNext no lee `.env.local`, así que primero exporta la variable de Hyperdrive en la terminal (Git Bash):
 
    ```bash
-   npm run deploy
+   export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="$(grep -E '^CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=' .env.local | cut -d= -f2- | tr -d '"')"
+   ```
+
+   Compila con la URL pública para que el canonical y Open Graph no apunten a localhost:
+
+   ```bash
+   NEXT_PUBLIC_SITE_URL=https://camiloshop.<tu-subdominio>.workers.dev npm run deploy
    ```
 
    Abre `https://camiloshop.<tu-subdominio>.workers.dev/api/health`.
+
+> `NEXT_PUBLIC_SUPABASE_URL` debe ser la URL base del proyecto (`https://<ref>.supabase.co`), sin `/rest/v1`.
 
 > **Windows:** OpenNext advierte que Windows no está soportado del todo. El build funciona con webpack; si aparece algún error de symlinks, usa WSL o activa el Modo de Desarrollador de Windows.
 

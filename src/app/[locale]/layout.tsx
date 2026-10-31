@@ -11,6 +11,7 @@ import { focusRing } from "@/components/ui/styles";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { Providers } from "@/components/layout/providers";
+import { getUsdRate } from "@/features/catalog/queries";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora", display: "swap" });
@@ -20,9 +21,9 @@ interface LocaleLayoutProps {
   params: Promise<{ locale: string }>;
 }
 
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
-}
+// Every page reads live catalog data (prices, stock, USD rate), and no incremental
+// cache is configured on Cloudflare yet, so pages render per request.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: LocaleLayoutProps): Promise<Metadata> {
   const { locale } = await params;
@@ -50,7 +51,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 
-  const t = await getTranslations("Common");
+  const [t, usdRate] = await Promise.all([getTranslations("Common"), getUsdRate()]);
 
   return (
     <html
@@ -60,7 +61,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     >
       <body className="flex min-h-dvh flex-col bg-canvas font-sans text-fg antialiased">
         <NextIntlClientProvider>
-          <Providers>
+          <Providers usdRate={usdRate}>
             <a
               href="#main-content"
               className={cn(

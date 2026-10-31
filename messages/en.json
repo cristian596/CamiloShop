@@ -67,10 +67,37 @@
     "benefitReturnsText": "5 business-day right of withdrawal."
   },
   "Product": {
-    "new": "New",
     "discount": "-{percent}%",
     "previousPrice": "Previous price",
-    "currentPrice": "Current price"
+    "currentPrice": "Current price",
+    "soldOut": "Sold out",
+    "rating": "{rating} out of 5 stars, {count} ratings",
+    "ratingShort": "({count})",
+    "new": "New",
+    "addToCart": "Add to cart",
+    "cartComingSoon": "The cart will be available very soon.",
+    "inStock": "In stock",
+    "lowStock": "Only {count} left!",
+    "outOfStock": "Sold out",
+    "size": "Size",
+    "color": "Color",
+    "selected": "{label}: {value}",
+    "unavailable": "{value}, sold out",
+    "description": "Description",
+    "details": "Details",
+    "sku": "SKU",
+    "brand": "Brand",
+    "category": "Category",
+    "vatIncluded": "VAT included",
+    "usdNote": "Approximate USD price; you are charged in COP.",
+    "gallery": "Product images",
+    "showImage": "Show image {index} of {total}",
+    "related": "Related products",
+    "recentlyViewed": "Recently viewed",
+    "share": "Share",
+    "shareCopied": "Link copied",
+    "shareFailed": "Could not share",
+    "shareText": "Check out {name} at CamiloShop"
   },
   "Footer": {
     "tagline": "Tech, beauty and fashion with an urban style.",
@@ -94,5 +121,86 @@
   },
   "Loading": {
     "label": "Loading content"
+  },
+  "Breadcrumbs": {
+    "label": "Breadcrumb",
+    "home": "Home"
+  },
+  "Listing": {
+    "count": "{count, plural, =0 {No products} one {# product} other {# products}}",
+    "subcategories": "Subcategories",
+    "all": "View all",
+    "emptyTitle": "No products match these filters",
+    "emptyText": "Try removing some filters or browse another category.",
+    "clearFilters": "Clear filters",
+    "metaDescription": "Shop {category} at CamiloShop: free shipping from COP 200,000 and secure payments."
+  },
+  "Filters": {
+    "title": "Filters",
+    "openWithCount": "Filters ({count})",
+    "close": "Close filters",
+    "apply": "Apply filters",
+    "clear": "Clear",
+    "price": "Price (COP)",
+    "min": "Minimum",
+    "max": "Maximum",
+    "brand": "Brand",
+    "size": "Size",
+    "color": "Color",
+    "rating": "Rating",
+    "ratingOption": "{stars} stars & up",
+    "anyRating": "Any",
+    "active": "Active filters",
+    "remove": "Remove filter: {label}",
+    "priceRange": "Price: {range}",
+    "ratingChip": "{stars}+ stars"
+  },
+  "Sort": {
+    "label": "Sort by",
+    "featured": "Featured",
+    "newest": "Newest",
+    "price-asc": "Price: low to high",
+    "price-desc": "Price: high to low",
+    "rating": "Top rated",
+    "best-selling": "Best selling"
+  },
+  "Pagination": {
+    "label": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {page}",
+    "current": "Page {page}, current page"
+  },
+  "Colors": {
+    "black": "Black",
+    "white": "White",
+    "gray": "Gray",
+    "silver": "Silver",
+    "navy": "Navy",
+    "blue": "Blue",
+    "green": "Green",
+    "olive": "Olive",
+    "beige": "Beige",
+    "cream": "Cream",
+    "brown": "Brown",
+    "orange": "Orange",
+    "red": "Red",
+    "pink": "Pink",
+    "purple": "Purple",
+    "nude": "Nude"
+  },
+  "Search": {
+    "title": "Results for “{query}”",
+    "titleEmpty": "Search products",
+    "count": "{count, plural, =0 {No results} one {# result} other {# results}}",
+    "emptyTitle": "No products found for “{query}”",
+    "emptyText": "Check the spelling or try more general terms.",
+    "hint": "Type at least 2 characters to search.",
+    "suggestions": "Product suggestions",
+    "noSuggestions": "No suggestions for “{query}”",
+    "seeAll": "See all results for “{query}”",
+    "loading": "Searching…",
+    "resultsAvailable": "{count, plural, =0 {No suggestions} one {# suggestion available} other {# suggestions available}}. Use the arrow keys to navigate.",
+    "browse": "Browse categories"
   }
 }
