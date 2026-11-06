@@ -129,3 +129,23 @@ Alternativas si algún día se prefiere Turbopack: activar el Modo de Desarrolla
 - Un test verifica que `messages/es.json` y `messages/en.json` tengan exactamente las mismas claves y ningún texto vacío.
 - **Tamaño del Worker:** 2,16 MiB comprimido.
 - **URL canónica:** `NEXT_PUBLIC_SITE_URL` se incrusta al compilar. Para el deploy hay que compilar con la URL pública (ver README); si no, el canonical y el Open Graph apuntan a `localhost`.
+
+## Deploy del catálogo (31 de octubre de 2026)
+
+- Compilado con `NEXT_PUBLIC_SITE_URL=https://camiloshop.camilithopks6.workers.dev`; el canonical y `og:url` ya apuntan a workers.dev.
+- Worker: 2,16 MiB comprimido (gzip), arranque en 17 ms.
+- Tiempo hasta el primer byte medido desde Colombia (tres peticiones por ruta, la primera en frío): health 0,3–1,35 s; home 0,74–1,66 s; listado 0,32–0,69 s; ficha 0,33–1,27 s; búsqueda 0,28–0,34 s; sugerencias 0,26–0,60 s. Las rutas inexistentes devuelven 404 real.
+
+## Fase 3: autenticación
+
+- **Sesión:** `@supabase/ssr` con `getClaims()` en el middleware (refresca el token) y en `getCurrentUser()`, cacheado por request. El middleware redirige a `/login?next=` en `/account`, `/admin` y `/checkout`, y saca de `/login` y `/register` a quien ya tiene sesión. Es solo UX: cada página y cada server action vuelven a comprobar con `requireUser()` / `requireAdmin()`.
+- **Rol:** el Custom Access Token Hook escribe `app_metadata.user_role`, no el claim `role` (Supabase lo reserva para el rol de Postgres, `authenticated`). `requireAdmin()` lee `Profile.role` en la base de datos y responde 404 a quien no es admin.
+- **Perfil:** lo crea un trigger sobre `auth.users` con el nombre, el idioma y la versión de la política aceptada (metadatos del registro). La FK `Profile.id → auth.users` se reemplazó por un trigger de borrado porque Prisma rechaza las referencias entre esquemas (error P4002) y rompía `db:diff`. Borrar un usuario con pedidos falla, igual que con `ON DELETE RESTRICT`.
+- **Un solo callback:** `/auth/callback` acepta `?code=` (Google y enlaces PKCE) y `?token_hash=&type=` (plantillas de correo con token hash). `next` se valida con `safeNextPath` para que no pueda redirigir a otro dominio.
+- **Registro sin verificación** (`REQUIRE_EMAIL_VERIFICATION=false`): Admin API con `email_confirm: true` e inicio de sesión inmediato. Como la Admin API no tiene los límites de Supabase, se limita a 5 registros por hora por hash de IP.
+- **Consentimiento (Ley 1581):** el registro exige el checkbox (validado en el servidor) y guarda `privacyAcceptedAt` y `privacyVersion`. Con Google desde la página de registro también se exige el checkbox; desde el login se muestra la nota legal.
+- **Rate limiting:** tabla `RateLimitHit` con SHA-256 de `CF-Connecting-IP` + `RATE_LIMIT_SALT`. "Entrar como demo": 10 intentos cada 10 minutos. La purga de filas viejas llega con pg_cron en la fase 4.
+- **Cuenta demo:** la crea o restablece `npm run db:seed`. No puede cambiar su contraseña; el restablecimiento diario de sus datos llega con pg_cron en la fase 4.
+- **Emails:** `sendEmail()` llama a la API REST de Resend con `fetch`, nunca lanza excepciones y registra los fallos. Las plantillas son HTML con estilos en línea (`src/lib/email/templates.ts`) en lugar de React Email, para no sumar peso al Worker. La bienvenida se envía una sola vez: se reclama `welcomeEmailSentAt` con un `UPDATE` condicional y el envío corre en `waitUntil`.
+- **Formularios:** React 19 resetea un `<form action>` después de cada acción. Eso borraba la contraseña tras un error y dejaba el `<select>` de departamento en otra opción, que se llegaba a guardar. Los formularios despachan la acción desde `onSubmit` sin reset (`submitWithoutReset`) y conservan `action` para funcionar sin JavaScript.
+- **Tamaño del Worker:** 2,51 MiB comprimido (antes 2,16 MiB; la Admin API de Supabase y los formularios suman ~0,35 MiB). Quedan ~0,49 MiB del plan Free. Las fases 4–6 suman el PDF del comprobante y Recharts; si no caben, la opción prevista es Workers Paid (10 MiB).

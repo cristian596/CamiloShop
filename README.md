@@ -2,7 +2,12 @@
 
 E-commerce de portafolio con estilo lujoso y urbano: tecnología, cosméticos y ropa. Construido con Next.js 16 (App Router), TypeScript estricto, Tailwind CSS v4, Supabase, Prisma y Cloudflare Workers (OpenNext).
 
-> **Estado:** fase 2b de 7 (catálogo completo: listado, ficha de producto, búsqueda con sugerencias, relacionados y vistos recientemente). Auth llega en la fase 3.
+> **Estado:** fase 3 de 7 (catálogo completo y cuentas de usuario: registro, ingreso con correo o Google, recuperación de contraseña, perfil, direcciones, favoritos y páginas legales). El carrito y el checkout llegan en la fase 4.
+
+## Probar la tienda como visitante
+
+En `/es/login` pulsa **"Entrar como demo"**: inicia sesión con una cuenta de cliente compartida, sin registrarte. Es el camino recomendado porque, sin dominio propio, los correos de verificación y bienvenida solo llegan al dueño de la cuenta de Resend (ver _Limitaciones conocidas_). La cuenta demo no puede cambiar su contraseña. El administrador de demo no es público.
+
 > Los pagos funcionarán en **modo sandbox**: no se cobra dinero real.
 
 ## Stack
@@ -14,7 +19,8 @@ E-commerce de portafolio con estilo lujoso y urbano: tecnología, cosméticos y 
 | i18n           | next-intl: español (`/es`, principal) e inglés (`/en`)                              |
 | Estado global  | Zustand (moneda y vistos recientemente; el carrito llega en la fase 4)              |
 | Base de datos  | Supabase Postgres + Prisma 7 (`@prisma/adapter-pg`) vía Cloudflare Hyperdrive       |
-| Auth / Storage | Supabase Auth y Storage (fase 3 y 6)                                                |
+| Auth / Storage | Supabase Auth (correo y Google) y Storage (fase 6)                                  |
+| Emails         | API de Resend (bienvenida; pedidos en las fases 4 y 5)                              |
 | Despliegue     | Cloudflare Workers con `@opennextjs/cloudflare`                                     |
 | Tests          | Vitest (unitarios); Playwright y CI llegan en la fase 7b                            |
 
@@ -109,6 +115,34 @@ Abre http://localhost:3000; te redirige a `/es`.
 
 > `NEXT_PUBLIC_SUPABASE_URL` debe ser la URL base del proyecto (`https://<ref>.supabase.co`), sin `/rest/v1`.
 
+## Configurar la autenticación (fase 3)
+
+1. **Variables** en `.env.local` (ver `.env.example`): `REQUIRE_EMAIL_VERIFICATION`, `RATE_LIMIT_SALT`, `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD`, `RESEND_API_KEY` y `EMAIL_FROM`. Copia las mismas variables de servidor en `.dev.vars` para `npm run preview`.
+2. **Migraciones y usuario demo:** `npm run db:migrate` crea el trigger que genera el perfil de cada usuario nuevo y el hook de rol; `npm run db:seed` crea (o restablece) la cuenta demo con una dirección.
+3. **Supabase → Authentication → URL Configuration:** _Site URL_ = la URL pública del Worker. En _Redirect URLs_ agrega `http://localhost:3000/auth/callback` y `https://camiloshop.<tu-subdominio>.workers.dev/auth/callback`.
+4. **Supabase → Authentication → Hooks:** activa _Customize Access Token (JWT) Claims_ y elige la función `public.custom_access_token_hook`. Agrega `app_metadata.user_role` (`admin` o `customer`) al token.
+5. **Google:** en Google Cloud Console crea un cliente OAuth (tipo _Web application_) con la URI de redirección que muestra Supabase en _Authentication → Sign In / Providers → Google_ (`https://<ref>.supabase.co/auth/v1/callback`). Pega el Client ID y el Secret en Supabase. Luego, en _OAuth consent screen_, pulsa **Publish app** para pasarla de _Testing_ a _In production_; si no, solo entran las cuentas de prueba.
+6. **Resend:** crea una API key y ponla en `RESEND_API_KEY`. Para que Supabase envíe la verificación y la recuperación por Resend, en _Authentication → Emails → SMTP Settings_ usa host `smtp.resend.com`, puerto `465`, usuario `resend`, contraseña = la API key y remitente `onboarding@resend.dev`.
+7. **Producción:** los secretos van con wrangler (una vez por variable):
+
+   ```bash
+   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+   ```
+
+   Repite con `RATE_LIMIT_SALT`, `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD`, `RESEND_API_KEY`, `EMAIL_FROM` y `REQUIRE_EMAIL_VERIFICATION`.
+
+8. **Promover tu usuario a admin** (en el SQL Editor de Supabase, con tu correo):
+
+   ```sql
+   update "Profile" set role = 'ADMIN' where email = 'tu-correo@ejemplo.com';
+   ```
+
+   Cierra sesión y vuelve a entrar para que el token traiga el rol nuevo; luego abre `/es/admin`.
+
+**Rol en el JWT:** el claim `user_role` solo se actualiza cuando el token se renueva (cada hora por defecto) o al volver a iniciar sesión. El middleware usa ese claim solo para redirigir; la autorización real (`requireAdmin()`) siempre lee `Profile.role` en la base de datos, así que un rol revocado deja de servir de inmediato aunque el token diga otra cosa. En la fase 6, cambiar un rol desde el admin también cerrará las sesiones de ese usuario.
+
+**Verificación de correo:** con `REQUIRE_EMAIL_VERIFICATION=false` el registro crea la cuenta ya confirmada (Admin API de Supabase) e inicia sesión de una vez; ese camino tiene un límite de 5 registros por hora por IP. Con `true`, Supabase envía un enlace de confirmación que vuelve a `/auth/callback`.
+
 > **Windows:** OpenNext advierte que Windows no está soportado del todo. El build funciona con webpack; si aparece algún error de symlinks, usa WSL o activa el Modo de Desarrollador de Windows.
 
 ## Diseño
@@ -126,10 +160,10 @@ src/
   app/              rutas (App Router); [locale]/ contiene la tienda
   components/ui     componentes base (Button, Badge, Skeleton…)
   components/layout Header, Footer, selectores de idioma/moneda/tema
-  config/           árbol de categorías (estático en la fase 1)
-  features/         código por dominio (catalog, cart, checkout…)
+  config/           categorías, catálogo, departamentos, versión legal
+  features/         código por dominio (catalog, auth, account, legal…)
   i18n/             configuración de next-intl
-  lib/              utilidades (db, env, money, supabase)
+  lib/              utilidades (db, env, auth, rate-limit, email, supabase)
   stores/           stores de Zustand
 messages/           textos en es.json y en.json
 prisma/             esquema de base de datos
@@ -138,7 +172,8 @@ docs/               decisiones técnicas
 
 ## Limitaciones conocidas
 
-- **Emails:** sin dominio propio, Resend envía con `onboarding@resend.dev` y **solo entrega al correo del dueño de la cuenta**. Por eso, el camino principal para visitantes será el botón **"Entrar como demo"** (fase 3). Verificar un dominio propio queda como mejora futura.
+- **Emails:** sin dominio propio, Resend envía con `onboarding@resend.dev` y **solo entrega al correo del dueño de la cuenta**. Por eso, el camino principal para visitantes es el botón **"Entrar como demo"**. Un envío fallido se registra en los logs y nunca interrumpe el registro ni los pedidos. Verificar un dominio propio queda como mejora futura.
+- **Páginas legales:** términos, tratamiento de datos (Ley 1581) y devoluciones son **plantillas** y deben revisarlas un abogado antes de usarlas en un comercio real.
 - **Supabase Free pausa el proyecto** tras unos días sin actividad. Para reactivarlo: entra a supabase.com, abre el proyecto y pulsa _Restore project_. En la fase 7b se agrega un workflow que hace ping a `/api/health` cada 3 días para evitarlo.
 
 ## Aviso

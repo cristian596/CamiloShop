@@ -1,7 +1,8 @@
-import { ShoppingBag, User } from "lucide-react";
+import { LogIn, ShoppingBag } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { ROOT_CATEGORIES, categoryHref } from "@/config/categories";
 import { Link } from "@/i18n/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
@@ -14,8 +15,12 @@ import { SearchBox } from "./search-box";
 import { ThemeToggle } from "./theme-toggle";
 
 export async function Header() {
-  const t = await getTranslations("Header");
-  const tc = await getTranslations("Categories");
+  const [t, tc, user] = await Promise.all([
+    getTranslations("Header"),
+    getTranslations("Categories"),
+    getCurrentUser(),
+  ]);
+  const displayName = user ? (user.name ?? user.email) : null;
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur-md">
@@ -27,13 +32,25 @@ export async function Header() {
           <LocaleSwitcher className="hidden lg:flex" />
           <CurrencySwitcher className="hidden lg:flex" />
           <ThemeToggle />
-          <Link
-            href="/account"
-            aria-label={t("account")}
-            className={buttonClasses({ variant: "ghost", size: "icon" })}
-          >
-            <User className="size-5" aria-hidden="true" />
-          </Link>
+          {displayName ? (
+            <Link
+              href="/account"
+              aria-label={t("accountOf", { name: displayName })}
+              className={buttonClasses({ variant: "ghost", size: "icon" })}
+            >
+              <span className="grid size-8 place-items-center rounded-full bg-primary font-display text-sm font-semibold text-on-primary uppercase">
+                {displayName.charAt(0)}
+              </span>
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className={buttonClasses({ variant: "ghost", size: "sm", className: "px-2 sm:px-3" })}
+            >
+              <LogIn className="size-5" aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">{t("signIn")}</span>
+            </Link>
+          )}
           <Link
             href="/cart"
             aria-label={t("cart")}

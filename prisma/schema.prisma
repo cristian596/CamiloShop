@@ -69,6 +69,11 @@ model Profile {
   role      Role     @default(CUSTOMER)
   locale    String   @default("es")
   isActive  Boolean  @default(true)
+  /// Consent to the data processing policy (Ley 1581), recorded at sign-up.
+  privacyAcceptedAt  DateTime?
+  privacyVersion     String?
+  /// Set once the welcome email has been attempted, so it is never sent twice.
+  welcomeEmailSentAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

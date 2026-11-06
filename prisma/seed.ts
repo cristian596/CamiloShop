@@ -7,7 +7,9 @@
 import { config } from "dotenv";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { createClient } from "@supabase/supabase-js";
 import { COLORS } from "../src/config/catalog";
+import { LEGAL_VERSION } from "../src/config/legal";
 import { ROOT_CATEGORIES } from "../src/config/categories";
 import en from "../messages/en.json";
 import es from "../messages/es.json";
@@ -204,6 +206,78 @@ async function seedProducts(categoryIds: Map<string, string>, brandIds: Map<stri
   }
 }
 
+/**
+ * Creates (or resets) the shared demo customer used by "Entrar como demo".
+ * Skipped unless DEMO_USER_EMAIL, DEMO_USER_PASSWORD and the service role key are set.
+ * The profile row itself is created by the on_auth_user_created trigger.
+ */
+async function seedDemoUser() {
+  const email = process.env.DEMO_USER_EMAIL;
+  const password = process.env.DEMO_USER_PASSWORD;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!email || !password || !url || !serviceKey) {
+    console.log("Demo user skipped (DEMO_USER_* or Supabase service role not configured).");
+    return;
+  }
+
+  const admin = createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const metadata = { full_name: "Cliente Demo", locale: "es", privacy_version: LEGAL_VERSION };
+
+  const existing = await prisma.profile.findUnique({ where: { email }, select: { id: true } });
+  let userId = existing?.id;
+  if (userId) {
+    const { error } = await admin.auth.admin.updateUserById(userId, {
+      password,
+      email_confirm: true,
+      user_metadata: metadata,
+    });
+    if (error) throw error;
+  } else {
+    const { data, error } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: metadata,
+    });
+    if (error) throw error;
+    userId = data.user.id;
+  }
+
+  const now = new Date();
+  await prisma.profile.update({
+    where: { id: userId },
+    data: {
+      fullName: "Cliente Demo",
+      phone: "3001234567",
+      role: "CUSTOMER",
+      isActive: true,
+      privacyAcceptedAt: now,
+      privacyVersion: LEGAL_VERSION,
+      // The demo inbox does not exist: never send it a welcome email.
+      welcomeEmailSentAt: now,
+    },
+  });
+
+  await prisma.address.deleteMany({ where: { userId } });
+  await prisma.address.create({
+    data: {
+      userId,
+      label: "Casa",
+      recipient: "Cliente Demo",
+      phone: "3001234567",
+      department: "Antioquia",
+      city: "Medellín",
+      line1: "Calle 10 # 43-21",
+      line2: "Apto 502, El Poblado",
+      isDefault: true,
+    },
+  });
+  console.log("Demo user ready.");
+}
+
 async function main() {
   await seedSettings();
   await seedCoupons();
@@ -211,6 +285,7 @@ async function main() {
   const categoryIds = await seedCategories();
   const brandIds = await seedBrands();
   await seedProducts(categoryIds, brandIds);
+  await seedDemoUser();
 
   const [products, variants] = await Promise.all([
     prisma.product.count(),

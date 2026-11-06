@@ -434,3 +434,18 @@ export async function searchProducts(query: string, page: number) {
 export async function suggestProducts(query: string, limit = 6): Promise<ProductSummary[]> {
   return getSummariesInOrder(await searchProductIds(query, limit, 0));
 }
+
+/** The user's favorite products that are still active, newest first. */
+export async function getFavoriteProducts(userId: string): Promise<ProductSummary[]> {
+  const favorites = await getDb().favorite.findMany({
+    where: { userId, product: { isActive: true } },
+    orderBy: { createdAt: "desc" },
+    select: { product: { select: productSummarySelect } },
+  });
+  return favorites.map((favorite) => toSummary(favorite.product));
+}
+
+export async function isFavoriteProduct(userId: string, productId: string): Promise<boolean> {
+  const count = await getDb().favorite.count({ where: { userId, productId } });
+  return count > 0;
+}

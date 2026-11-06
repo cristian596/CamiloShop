@@ -12,9 +12,12 @@ import { ProductGridSkeleton } from "@/components/layout/page-skeleton";
 import { ProductGallery } from "@/features/catalog/product-gallery";
 import { ProductGrid } from "@/features/catalog/product-grid";
 import { PurchasePanel } from "@/features/catalog/purchase-panel";
+import { getCurrentUser } from "@/lib/auth";
+import { FavoriteButton } from "@/features/account/favorite-button";
 import {
   getProductDetail,
   getRelatedProducts,
+  isFavoriteProduct,
   type ProductDetail,
 } from "@/features/catalog/queries";
 import { RecentlyViewed, RecordProductView } from "@/features/catalog/recently-viewed";
@@ -70,10 +73,12 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   const product = await getProductDetail(slug);
   if (!product) notFound();
 
-  const [{ variant: rawVariant }, t] = await Promise.all([
+  const [{ variant: rawVariant }, t, user] = await Promise.all([
     searchParams,
     getTranslations("Product"),
+    getCurrentUser(),
   ]);
+  const favorited = user ? await isFavoriteProduct(user.id, product.id) : false;
   const sku = Array.isArray(rawVariant) ? rawVariant[0] : rawVariant;
   const initialSelection =
     selectionFromSku(product.variants, sku) ?? getDefaultSelection(product.variants);
@@ -150,7 +155,15 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               initialSelection={initialSelection}
             />
 
-            <ShareButton name={name} />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <FavoriteButton
+                productId={product.id}
+                initialFavorited={favorited}
+                signedIn={Boolean(user)}
+                locale={locale}
+              />
+              <ShareButton name={name} />
+            </div>
 
             <section aria-labelledby="description-title" className="border-t border-line pt-6">
               <h2 id="description-title" className="mb-3 font-display text-lg font-semibold">
