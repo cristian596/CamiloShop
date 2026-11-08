@@ -38,8 +38,8 @@ export const quoteInputSchema = z.object({
   couponCode: z.string().max(40).default(""),
 });
 
-/** Payment methods enabled so far; card and PSE (Wompi) arrive in phase 5. */
-export const PAYMENT_METHODS = ["COD"] as const;
+/** Card and PSE are paid through Wompi; cash on delivery is confirmed by the admin. */
+export const PAYMENT_METHODS = ["COD", "CARD", "PSE"] as const;
 
 export const placeOrderSchema = quoteInputSchema.extend({
   addressId: z.uuid(),
@@ -339,7 +339,7 @@ export async function placeOrder(
             statusHistory: { create: { to: "PENDING", changedById: userId } },
             payments: {
               create: {
-                provider: "COD",
+                provider: input.paymentMethod === "COD" ? "COD" : "WOMPI",
                 reference: `${number}-A1`,
                 method: input.paymentMethod,
                 amountInCents: BigInt(totals.total) * 100n,

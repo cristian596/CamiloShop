@@ -3,7 +3,11 @@ import { isColorKey } from "@/config/catalog";
 import { getDb } from "@/lib/db";
 import { publicEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/email/send";
-import { orderConfirmationEmail } from "@/lib/email/templates";
+import {
+  orderConfirmationEmail,
+  orderStatusEmail,
+  type NotifiedStatus,
+} from "@/lib/email/templates";
 import type { ShippingAddressSnapshot } from "@/features/checkout/place-order";
 import en from "../../../messages/en.json";
 import es from "../../../messages/es.json";
@@ -67,6 +71,31 @@ export async function sendOrderConfirmation(orderId: string) {
           lineTotal: item.lineTotal,
         })),
       },
+    }),
+  );
+}
+
+/** "Payment confirmed", "shipped", etc. Never throws (see sendEmail). */
+export async function sendOrderStatusEmail(orderId: string, status: NotifiedStatus) {
+  const order = await getDb().order.findUnique({
+    where: { id: orderId },
+    select: {
+      number: true,
+      total: true,
+      user: { select: { email: true, fullName: true, locale: true } },
+    },
+  });
+  if (!order) return;
+
+  await sendEmail(
+    orderStatusEmail({
+      to: order.user.email,
+      name: order.user.fullName,
+      locale: order.user.locale === "en" ? "en" : "es",
+      siteUrl: publicEnv.NEXT_PUBLIC_SITE_URL,
+      number: order.number,
+      total: order.total,
+      status,
     }),
   );
 }

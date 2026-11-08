@@ -2,7 +2,7 @@
 
 E-commerce de portafolio con estilo lujoso y urbano: tecnología, cosméticos y ropa. Construido con Next.js 16 (App Router), TypeScript estricto, Tailwind CSS v4, Supabase, Prisma y Cloudflare Workers (OpenNext).
 
-> **Estado:** fase 4 de 7 (catálogo, cuentas de usuario, carrito y checkout con pago contra entrega, pedidos y comprobante PDF). Los pagos con tarjeta y PSE (Wompi sandbox) llegan en la fase 5.
+> **Estado:** fase 5 de 7 (catálogo, cuentas, carrito, checkout, pagos con tarjeta y PSE (integración Wompi + pasarela simulada para la demo), contra entrega, pedidos y comprobante PDF). El panel de administración llega en la fase 6.
 
 ## Probar la tienda como visitante
 
@@ -146,6 +146,25 @@ Abre http://localhost:3000; te redirige a `/es`.
 **Verificación de correo:** con `REQUIRE_EMAIL_VERIFICATION=false` el registro crea la cuenta ya confirmada (Admin API de Supabase) e inicia sesión de una vez; ese camino tiene un límite de 5 registros por hora por IP. Con `true`, Supabase envía un enlace de confirmación que vuelve a `/auth/callback`.
 
 > **Windows:** OpenNext advierte que Windows no está soportado del todo. El build funciona con webpack; si aparece algún error de symlinks, usa WSL o activa el Modo de Desarrollador de Windows.
+
+## Pagos (fase 5)
+
+La tienda tiene dos pasarelas para tarjeta y PSE, y se elige con `PAYMENT_GATEWAY`:
+
+- **`simulated` (la de la demo pública):** abrir una cuenta de comercio en Wompi, incluso solo para el sandbox, exige un negocio registrado (RUT), y esta tienda es un proyecto de portafolio. Por eso la demo usa una **pasarela simulada** propia, en `/checkout/simulated`: muestra el pedido y el monto, no pide datos de tarjeta y deja elegir **Aprobar**, **Rechazar** o **Error**. El resultado tiene la misma forma que una transacción del API de Wompi y pasa por la misma función que usa el webhook real (`applyWompiTransaction`). Por eso "Pagar de nuevo", el vencimiento, el email de pago confirmado y la protección contra doble clic se comportan igual que con Wompi. Las transacciones simuladas quedan con id `sim_…`. No hay que configurar nada.
+- **`wompi`:** la integración real con el Web Checkout de Wompi, el webhook con checksum y la consulta de transacciones al API. Se activa con las llaves de un comercio, siguiendo los pasos de abajo.
+
+Si `PAYMENT_GATEWAY` está vacío, se usa Wompi cuando las cuatro llaves existen y la pasarela simulada cuando no.
+
+### Activar Wompi (requiere cuenta de comercio)
+
+1. Crea una cuenta de comercio en [Wompi](https://comercios.wompi.co) y pasa el dashboard a **modo Sandbox**.
+2. En _Desarrolladores → Llaves y secretos_ copia la llave pública (`pub_test_…`), la privada (`prv_test_…`), el secreto de integridad (`test_integrity_…`) y el de eventos (`test_events_…`). Ponlos en `.env.local` y `.dev.vars` como `WOMPI_PUBLIC_KEY`, `WOMPI_PRIVATE_KEY`, `WOMPI_INTEGRITY_SECRET` y `WOMPI_EVENTS_SECRET`, y en producción con `npx wrangler secret put` (una vez por variable).
+3. En _Desarrolladores → URL de eventos_ (sandbox) pon `https://camiloshop.<tu-subdominio>.workers.dev/api/webhooks/wompi`.
+4. Para probar el webhook en local necesitas una URL pública: `cloudflared tunnel --url http://localhost:3000` y usa la URL que imprime + `/api/webhooks/wompi`. Sin túnel también funciona: al volver de Wompi, la página del pedido consulta la transacción en el API.
+5. Datos de prueba: usa las tarjetas y bancos de la guía oficial de Wompi ("Datos de prueba en Sandbox"); en sandbox la tarjeta `4242 4242 4242 4242` se aprueba y la `4111 1111 1111 1111` se rechaza.
+
+**Cómo se confirma un pago con Wompi:** el pedido solo pasa a **pagado** cuando el servidor lee la transacción en el API de Wompi (desde el webhook o al volver del checkout), verifica que la referencia sea de ese pedido y que el monto y la moneda coincidan. La URL de retorno nunca cambia el pedido por sí sola. Si el pago se rechaza, el pedido sigue reservado y el botón **"Pagar de nuevo"** crea un intento con otra referencia (`CS-…-A2`), máximo 5 por hora. Si nadie paga, pg_cron lo cancela a los 30 minutos y devuelve el stock.
 
 ## Pedidos (fase 4)
 

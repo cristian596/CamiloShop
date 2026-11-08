@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
 import { requireUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { getPaymentGateway } from "@/lib/server-env";
 import { Container } from "@/components/ui/container";
 import { CheckoutForm } from "@/features/checkout/checkout-form";
 
@@ -53,7 +54,11 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
       <h1 className="mb-8 font-display text-3xl font-bold tracking-tight sm:text-4xl">
         {t("title")}
       </h1>
-      <CheckoutForm addresses={addresses} cities={rates.map((rate) => rate.city)} />
+      <CheckoutForm
+        addresses={addresses}
+        cities={rates.map((rate) => rate.city)}
+        gateway={getPaymentGateway()}
+      />
     </Container>
   );
 }

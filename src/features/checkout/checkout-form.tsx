@@ -1,6 +1,6 @@
 "use client";
 
-import { Banknote, CreditCard, Loader2, MapPin, Tag, Truck, X } from "lucide-react";
+import { Banknote, CreditCard, Landmark, Loader2, MapPin, Tag, Truck, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -39,12 +39,23 @@ function SectionTitle({ step, children }: { step: number; children: React.ReactN
   );
 }
 
+const PAYMENT_OPTIONS = [
+  { method: "CARD", icon: CreditCard },
+  { method: "PSE", icon: Landmark },
+  { method: "COD", icon: Banknote },
+] as const;
+
+type PaymentMethod = (typeof PAYMENT_OPTIONS)[number]["method"];
+
 export function CheckoutForm({
   addresses,
   cities,
+  gateway,
 }: {
   addresses: AddressView[];
   cities: string[];
+  /** Who takes card/PSE payments; null means only cash on delivery is offered. */
+  gateway: "wompi" | "simulated" | null;
 }) {
   const t = useTranslations("Checkout");
   const locale = useLocale() as Locale;
@@ -62,6 +73,7 @@ export function CheckoutForm({
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(gateway ? "CARD" : "COD");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoting, startQuote] = useTransition();
   const [placing, startPlacing] = useTransition();
@@ -107,13 +119,16 @@ export function CheckoutForm({
         lines: lines.map(({ variantId, quantity }) => ({ variantId, quantity })),
         addressId: selectedAddressId,
         couponCode: appliedCoupon,
-        paymentMethod: "COD",
+        paymentMethod,
         acceptTerms,
       });
       setResult(response);
       if (response.ok) {
         clearCart();
-        router.push(`/account/orders/${encodeURIComponent(response.number)}?placed=1`);
+        // Card/PSE: the order page opens the Wompi checkout right away (?pay=1).
+        router.push(
+          `/account/orders/${encodeURIComponent(response.number)}?placed=1${paymentMethod === "COD" ? "" : "&pay=1"}`,
+        );
       }
     });
   }
@@ -307,30 +322,46 @@ export function CheckoutForm({
           </SectionTitle>
           <fieldset className="flex flex-col gap-3">
             <legend className="sr-only">{t("paymentTitle")}</legend>
-            <label className="flex cursor-pointer gap-3 rounded-xl border border-primary bg-surface-raised p-4 text-sm has-focus-visible:outline-2 has-focus-visible:outline-focus">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="COD"
-                defaultChecked
-                className="mt-1 size-4 accent-primary"
-              />
-              <Banknote className="mt-0.5 size-5 shrink-0 text-primary-fg" aria-hidden="true" />
-              <span className="flex flex-col gap-0.5">
-                <span className="font-semibold">{t("cod")}</span>
-                <span className="text-muted">{t("codHint")}</span>
-              </span>
-            </label>
-            <div
-              aria-disabled="true"
-              className="flex gap-3 rounded-xl border border-dashed border-line p-4 text-sm text-muted"
-            >
-              <CreditCard className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-              <span className="flex flex-col gap-0.5">
-                <span className="font-semibold">{t("cardPse")}</span>
-                <span>{t("cardPseSoon")}</span>
-              </span>
-            </div>
+            {PAYMENT_OPTIONS.map(({ method, icon: Icon }) => {
+              const disabled = method !== "COD" && !gateway;
+              return (
+                <label
+                  key={method}
+                  className={cn(
+                    "flex gap-3 rounded-xl border p-4 text-sm has-focus-visible:outline-2 has-focus-visible:outline-focus",
+                    disabled
+                      ? "cursor-not-allowed border-dashed border-line text-muted"
+                      : paymentMethod === method
+                        ? "cursor-pointer border-primary bg-surface-raised"
+                        : "cursor-pointer border-line hover:border-primary-fg/50",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value={method}
+                    checked={paymentMethod === method}
+                    disabled={disabled}
+                    onChange={() => setPaymentMethod(method)}
+                    className="mt-1 size-4 accent-primary"
+                  />
+                  <Icon
+                    className={cn("mt-0.5 size-5 shrink-0", !disabled && "text-primary-fg")}
+                    aria-hidden="true"
+                  />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="font-semibold">{t(`methods.${method}.title`)}</span>
+                    <span className={disabled ? undefined : "text-muted"}>
+                      {disabled
+                        ? t("wompiUnavailable")
+                        : method !== "COD" && gateway === "simulated"
+                          ? t(`methods.${method}.simulatedHint`)
+                          : t(`methods.${method}.hint`)}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
           </fieldset>
         </section>
       </div>
@@ -488,7 +519,7 @@ export function CheckoutForm({
                 {t("placing")}
               </>
             ) : (
-              t("placeOrder")
+              t(paymentMethod === "COD" ? "placeOrder" : "placeAndPay")
             )}
           </button>
           {!acceptTerms ? (

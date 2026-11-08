@@ -404,10 +404,6 @@
       "alreadyUsed": "Ya usaste este cupón en otro pedido."
     },
     "paymentTitle": "Método de pago",
-    "cod": "Pago contra entrega",
-    "codHint": "Pagas al recibir. Confirmaremos tu pedido antes de enviarlo.",
-    "cardPse": "Tarjeta o PSE (Wompi)",
-    "cardPseSoon": "Disponible muy pronto.",
     "summaryTitle": "Resumen del pedido",
     "issuesTitle": "Algunos productos cambiaron",
     "issueUnavailable": "{name} ya no está disponible.",
@@ -435,8 +431,27 @@
       "cartChanged": "Algunos productos cambiaron. Revisa el resumen.",
       "outOfStock": "Alguien acaba de comprar las últimas unidades de un producto. Revisa tu carrito.",
       "coupon": "El cupón ya no se puede usar.",
-      "generic": "No pudimos crear el pedido. Intenta de nuevo."
-    }
+      "generic": "No pudimos crear el pedido. Intenta de nuevo.",
+      "paymentUnavailable": "Ese método de pago no está disponible ahora. Elige pago contra entrega."
+    },
+    "methods": {
+      "CARD": {
+        "title": "Tarjeta débito o crédito",
+        "hint": "Pagas en la pasarela segura de Wompi (modo sandbox).",
+        "simulatedHint": "Pasarela de pago simulada (demo): eliges si el pago se aprueba o se rechaza. No se cobra dinero."
+      },
+      "PSE": {
+        "title": "PSE",
+        "hint": "Débito desde tu cuenta bancaria a través de Wompi (modo sandbox).",
+        "simulatedHint": "Pasarela simulada (demo) que imita un débito PSE. No se cobra dinero."
+      },
+      "COD": {
+        "title": "Pago contra entrega",
+        "hint": "Pagas al recibir. Confirmaremos tu pedido antes de enviarlo."
+      }
+    },
+    "wompiUnavailable": "No disponible: faltan las llaves de Wompi en este entorno.",
+    "placeAndPay": "Confirmar y pagar"
   },
   "Orders": {
     "empty": "Aún no tienes pedidos.",
@@ -478,6 +493,45 @@
       "CARD": "Tarjeta",
       "PSE": "PSE",
       "COD": "Contra entrega"
-    }
+    },
+    "retryLimited": "Hiciste demasiados intentos de pago. Espera un rato e intenta de nuevo.",
+    "paidNow": "¡Pago aprobado! Tu pedido quedó confirmado."
+  },
+  "Payments": {
+    "title": "Pago",
+    "payHint": "Tu pedido está reservado. Completa el pago en {gateway, select, simulated {la pasarela simulada} other {Wompi}} antes de que venza.",
+    "redirecting": "Te estamos llevando a {gateway, select, simulated {la pasarela simulada} other {Wompi}} para completar el pago…",
+    "payNow": "Pagar ahora",
+    "sandboxNote": "Modo sandbox: usa las tarjetas y bancos de prueba de Wompi; no se cobra dinero real.",
+    "processing": "Wompi está procesando tu pago. Esta página se actualiza sola.",
+    "failed": {
+      "DECLINED": "Tu pago fue rechazado.",
+      "OTHER": "El pago no se completó."
+    },
+    "payAgain": "Pagar de nuevo",
+    "retryHint": "Se crea un nuevo intento con otra referencia. El pedido sigue reservado hasta que venza.",
+    "expired": "El tiempo para pagar este pedido terminó; se cancelará automáticamente.",
+    "simulatedNote": "Demo: esta tienda usa una pasarela simulada que reemplaza a Wompi. No se pide ningún dato de tarjeta ni se cobra dinero."
+  },
+  "SimulatedGateway": {
+    "title": "Pasarela de pago simulada",
+    "badge": "Demo · sin dinero real",
+    "intro": "Esta pantalla reemplaza la pasarela de Wompi en la demo pública. Elige qué responde el banco y verás cómo la tienda procesa el resultado.",
+    "order": "Pedido",
+    "reference": "Referencia",
+    "method": "Método",
+    "methods": {
+      "CARD": "Tarjeta (simulada)",
+      "PSE": "PSE (simulado)"
+    },
+    "expires": "Vence a las",
+    "amount": "Total a pagar",
+    "approve": "Aprobar pago",
+    "decline": "Rechazar pago",
+    "error": "Simular error de la pasarela",
+    "back": "Volver al pedido sin pagar",
+    "unavailable": "Este intento de pago ya no está disponible: ya se resolvió, el pedido venció o no te pertenece.",
+    "toOrders": "Ir a mis pedidos",
+    "disclaimer": "Pasarela de demostración: no pide datos de tarjeta, no se conecta a ningún banco y no mueve dinero. El código de la integración real con Wompi está en el proyecto y se activa con sus llaves."
   }
 }

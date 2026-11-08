@@ -224,3 +224,85 @@ ${button(orderUrl, copy.cta)}
     text,
   };
 }
+
+export type NotifiedStatus = "PAID" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+
+const STATUS_COPY = {
+  es: {
+    PAID: {
+      subject: "Pago confirmado",
+      text: "Confirmamos el pago de tu pedido. Pronto lo prepararemos para el envío.",
+    },
+    SHIPPED: {
+      subject: "Tu pedido va en camino",
+      text: "Tu pedido salió de nuestra bodega y va en camino.",
+    },
+    DELIVERED: {
+      subject: "Pedido entregado",
+      text: "Tu pedido fue entregado. Ya puedes dejar una reseña de tus productos.",
+    },
+    CANCELLED: {
+      subject: "Pedido cancelado",
+      text: "Tu pedido fue cancelado y los productos volvieron al inventario.",
+    },
+    greeting: (name: string | null) => (name ? `Hola, ${name}:` : "Hola:"),
+    order: "Pedido",
+    total: "Total",
+    cta: "Ver mi pedido",
+  },
+  en: {
+    PAID: {
+      subject: "Payment confirmed",
+      text: "We confirmed the payment for your order. We'll prepare it for shipping soon.",
+    },
+    SHIPPED: {
+      subject: "Your order is on its way",
+      text: "Your order left our warehouse and is on its way.",
+    },
+    DELIVERED: {
+      subject: "Order delivered",
+      text: "Your order was delivered. You can now review your products.",
+    },
+    CANCELLED: {
+      subject: "Order cancelled",
+      text: "Your order was cancelled and the products went back to stock.",
+    },
+    greeting: (name: string | null) => (name ? `Hi ${name},` : "Hi,"),
+    order: "Order",
+    total: "Total",
+    cta: "View my order",
+  },
+} as const;
+
+export function orderStatusEmail({
+  to,
+  name,
+  locale,
+  siteUrl,
+  number,
+  total,
+  status,
+}: {
+  to: string;
+  name: string | null;
+  locale: Locale;
+  siteUrl: string;
+  number: string;
+  total: number;
+  status: NotifiedStatus;
+}): EmailMessage {
+  const copy = STATUS_COPY[locale];
+  const { subject, text } = copy[status];
+  const orderUrl = `${siteUrl}/${locale}/account/orders/${encodeURIComponent(number)}`;
+  const body = `<p style="margin:0 0 12px">${escapeHtml(copy.greeting(name))}</p>
+<p style="margin:0 0 16px">${escapeHtml(text)}</p>
+<p style="margin:0 0 20px;color:#9ca3af">${escapeHtml(copy.order)} <strong style="color:#f8fafc">${escapeHtml(number)}</strong> · ${escapeHtml(copy.total)} ${escapeHtml(cop(total, locale))}</p>
+${button(orderUrl, copy.cta)}`;
+
+  return {
+    to,
+    subject: `${subject} · ${number}`,
+    html: layout({ locale, preheader: text, body }),
+    text: `${copy.greeting(name)}\n\n${text}\n\n${copy.order} ${number} · ${copy.total} ${cop(total, locale)}\n${copy.cta}: ${orderUrl}`,
+  };
+}

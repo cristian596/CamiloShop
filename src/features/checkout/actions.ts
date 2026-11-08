@@ -5,7 +5,7 @@ import { LEGAL_VERSION } from "@/config/legal";
 import { getCurrentUser } from "@/lib/auth";
 import { runInBackground } from "@/lib/background";
 import { getDb } from "@/lib/db";
-import { getServerEnv } from "@/lib/server-env";
+import { getPaymentGateway, getServerEnv } from "@/lib/server-env";
 import { sendOrderConfirmation } from "@/features/orders/emails";
 import {
   buildQuote,
@@ -28,7 +28,7 @@ export async function quoteCheckoutAction(input: unknown): Promise<QuoteResult> 
 }
 
 export type PlaceOrderActionResult =
-  PlaceOrderResult | { ok: false; error: "auth" | "terms" | "invalid" };
+  PlaceOrderResult | { ok: false; error: "auth" | "terms" | "invalid" | "paymentUnavailable" };
 
 export async function placeOrderAction(input: unknown): Promise<PlaceOrderActionResult> {
   const user = await getCurrentUser();
@@ -40,6 +40,9 @@ export async function placeOrderAction(input: unknown): Promise<PlaceOrderAction
   }
   const parsed = placeOrderSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
+  if (parsed.data.paymentMethod !== "COD" && !getPaymentGateway()) {
+    return { ok: false, error: "paymentUnavailable" };
+  }
 
   const env = getServerEnv();
   const result = await placeOrder(getDb(), user.id, parsed.data, {

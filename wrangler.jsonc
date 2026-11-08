@@ -4,6 +4,10 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // next-themes serializes its anti-flash script into the HTML; esbuild keep_names
+  // would inject a __name() helper that does not exist in the browser.
+  // https://opennext.js.org/cloudflare/howtos/keep_names
+  "keep_names": false,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS",

@@ -167,3 +167,35 @@ Alternativas si algún día se prefiere Turbopack: activar el Modo de Desarrolla
 - **Comprobante PDF con pdf-lib** (JavaScript puro, funciona en Workers). Usa las fuentes estándar de PDF; los caracteres fuera de WinAnsi (emojis) se reemplazan por "?".
 - **Email de confirmación:** se envía en `waitUntil` y nunca bloquea el pedido. Con el usuario demo (`example.com`) Resend lo rechaza y el error queda en los logs; es lo esperado.
 - **Tamaño del Worker: 2,77 MiB comprimido** (antes 2,51; pdf-lib y el checkout suman ~0,26 MiB). Quedan ~0,23 MiB del plan Free. Wompi (fase 5) es poco código, pero el admin con Recharts (fase 6) casi seguro no cabe: hay que decidir entre Workers Paid (USD 5/mes, 10 MiB) o recortar.
+
+## Deploy de la fase 4 (7 de noviembre de 2026)
+
+- Probado en producción como demo: carrito, cupón GEMINI5, pedido contra entrega, PDF y cancelación.
+- **Zona horaria:** Workers corre en UTC, así que las fechas salían 5 horas adelantadas. `src/i18n/request.ts` fija `timeZone: "America/Bogota"` para servidor y cliente.
+- **`keep_names: false` en `wrangler.jsonc`:** el esbuild de wrangler inyectaba un helper `__name()` dentro del script anti-parpadeo de next-themes y el navegador lanzaba `ReferenceError: __name is not defined` en todas las páginas. Es el arreglo que recomienda OpenNext (https://opennext.js.org/cloudflare/howtos/keep_names).
+- **Límite de CPU del plan Free:** `wrangler tail` mostró entre 58 y 498 ms de CPU por request (render de Next.js y server actions), contra 10 ms por request en Free. Cloudflare tolera excesos ocasionales pero corta los Workers que lo superan seguido; un 503 en la primera cotización del checkout fue casi seguro eso. Workers Paid sube el límite a 30 s por defecto.
+- **Tamaño:** la documentación de límites ya no fija un máximo comprimido (64 MiB sin comprimir en ambos planes); el Worker pesa 2,69 MiB comprimido. El riesgo real del plan Free es la CPU, no el tamaño.
+
+## Fase 5: pagos con Wompi (sandbox)
+
+- **Web Checkout por formulario GET** firmado en el servidor (`signature:integrity` = SHA-256 de referencia + monto + moneda + `expiration-time` + secreto). La expiración del pedido va en la firma, así que Wompi no acepta pagos de un pedido vencido. También se envían el IVA (`tax-in-cents:vat`), los datos del cliente y la dirección.
+- **El método se elige en la tienda** (tarjeta, PSE o contra entrega), pero Wompi deja pagar con cualquier medio; al aprobarse, el pedido guarda el medio real si es tarjeta o PSE.
+- **Webhook** `/api/webhooks/wompi`: checksum con comparación en tiempo constante (401 si falla), eventos de otro ambiente ignorados, idempotencia con `WebhookEvent.eventKey` (`txId:status:timestamp`; un evento registrado pero sin `processedAt` se reprocesa), y siempre se vuelve a leer la transacción en el API (si el API no responde, 500 para que Wompi reintente). El payload nunca decide el estado.
+- **`applyWompiTransaction`** (con el cliente de Prisma como parámetro, probado contra la base real): valida referencia, monto y moneda; un estado final reportado por Wompi no cambia; la aprobación pasa el pedido de PENDING a PAID con un `UPDATE` condicional (dos llamadas simultáneas pagan una sola vez), suma `soldCount` y registra el historial.
+- **Aprobación tardía:** si el pedido ya se canceló, `cancel_order` había anulado el intento localmente. Esa anulación local (sin transacción de Wompi) sí acepta la aprobación posterior, que queda registrada como `approvedAfterCancel` para reembolso manual en el admin. Sin esto, un pago cobrado en el último segundo se habría ignorado.
+- **Retorno del checkout:** la página del pedido recibe `?id=<transacción>` y lo trata como una pista: consulta el API y aplica la transacción solo si su referencia es de ese pedido. Así el flujo funciona en local sin túnel; mientras siga pendiente (PSE), la página se refresca sola cada 4 s durante un minuto. Se usó la página del pedido en lugar de un `/checkout/result` aparte.
+- **Ejemplo de la documentación de eventos:** el checksum impreso junto al ejemplo no corresponde al SHA-256 de su propia cadena; el test valida la concatenación documentada. La firma de integridad sí coincide con su ejemplo.
+- **Email "pago confirmado"** con la plantilla genérica de cambio de estado, que la fase 6 reutiliza para enviado, entregado y cancelado.
+- Worker: 2,70 MiB comprimido.
+- **Pasarela simulada (7 de noviembre de 2026).** Una cuenta de comercio en Wompi, incluso solo para el sandbox, exige un negocio registrado (RUT), y este es un proyecto de portafolio. Opciones evaluadas:
+  - sacar un RUT de persona natural: es un trámite real solo para la demo;
+  - cambiar a PayU, que tiene credenciales de sandbox públicas: obliga a reescribir la firma, el webhook y los tests.
+
+  Se eligió una pasarela simulada propia, `PAYMENT_GATEWAY=simulated`, que es la opción por defecto cuando no hay llaves:
+  - `/checkout/simulated` reemplaza al Web Checkout. Solo la ve el dueño de un intento PENDING, sin transacción, en un pedido vigente.
+  - El cliente elige Aprobar, Rechazar o Error. No se pide ningún dato de tarjeta.
+  - El intento se reclama primero con un `UPDATE` condicional sobre `providerTxId`, así un doble clic lo resuelve una sola vez.
+  - Luego se construye una transacción con la forma del API de Wompi y se aplica con `applyWompiTransaction`, la misma función del webhook.
+  - Se conserva `provider = WOMPI` (sin migración) y las transacciones simuladas se distinguen por el id `sim_…`.
+
+  El código real de Wompi no cambió: queda listo para activarse con las llaves.

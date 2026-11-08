@@ -17,10 +17,12 @@ import { CancelOrderButton } from "@/features/orders/cancel-order-button";
 import { OrderStatusBadge } from "@/features/orders/order-status-badge";
 import { getOrderForViewer, isAdminUser } from "@/features/orders/queries";
 import { ORDER_PROGRESS, canCustomerCancel } from "@/features/orders/status";
+import { PaymentPanel } from "@/features/payments/payment-panel";
+import { getPaymentPanel, syncReturnedTransaction } from "@/features/payments/wompi-checkout";
 
 interface OrderPageProps {
   params: Promise<{ locale: string; number: string }>;
-  searchParams: Promise<{ placed?: string }>;
+  searchParams: Promise<{ placed?: string; pay?: string; id?: string; retry?: string }>;
 }
 
 export async function generateMetadata({ params }: OrderPageProps): Promise<Metadata> {
@@ -41,12 +43,17 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
   const number = decodeURIComponent(rawNumber);
   const user = await requireUser(`/account/orders/${encodeURIComponent(number)}`);
 
-  const order = await getOrderForViewer(number, {
-    id: user.id,
-    isAdmin: await isAdminUser(user.id),
-  });
+  const viewer = { id: user.id, isAdmin: await isAdminUser(user.id) };
+  let order = await getOrderForViewer(number, viewer);
   // Someone else's order looks exactly like a missing one.
   if (!order) notFound();
+
+  // Back from Wompi (?id=<transaction>): confirm with the Wompi API, then re-read.
+  if (query.id && order.status === "PENDING" && order.paymentMethod !== "COD") {
+    await syncReturnedTransaction(order.id, query.id);
+    order = (await getOrderForViewer(number, viewer)) ?? order;
+  }
+  const paymentPanel = order.userId === user.id ? await getPaymentPanel(order, locale) : null;
 
   const [t, tc, format] = await Promise.all([
     getTranslations("Orders"),
@@ -69,6 +76,13 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
         </FormMessage>
       ) : null}
 
+      {query.retry === "limited" ? (
+        <FormMessage tone="error">{t("retryLimited")}</FormMessage>
+      ) : null}
+      {query.id && order.status === "PAID" ? (
+        <FormMessage tone="success">{t("paidNow")}</FormMessage>
+      ) : null}
+
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
           {t("detailTitle", { number: order.number })}
@@ -79,6 +93,15 @@ export default async function OrderPage({ params, searchParams }: OrderPageProps
           {t(`method.${order.paymentMethod}`)}
         </p>
       </header>
+
+      {paymentPanel ? (
+        <PaymentPanel
+          panel={paymentPanel}
+          number={order.number}
+          autoOpen={query.pay === "1"}
+          polling={Boolean(query.id)}
+        />
+      ) : null}
 
       {/* Progress */}
       <section aria-labelledby="order-progress" className={cardClass}>

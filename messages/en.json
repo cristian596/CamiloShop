@@ -404,10 +404,6 @@
       "alreadyUsed": "You already used this coupon on another order."
     },
     "paymentTitle": "Payment method",
-    "cod": "Cash on delivery",
-    "codHint": "Pay when it arrives. We'll confirm your order before shipping it.",
-    "cardPse": "Card or PSE (Wompi)",
-    "cardPseSoon": "Coming very soon.",
     "summaryTitle": "Order summary",
     "issuesTitle": "Some products changed",
     "issueUnavailable": "{name} is no longer available.",
@@ -435,8 +431,27 @@
       "cartChanged": "Some products changed. Check the summary.",
       "outOfStock": "Someone just bought the last units of a product. Check your cart.",
       "coupon": "The coupon can no longer be used.",
-      "generic": "We couldn't create the order. Please try again."
-    }
+      "generic": "We couldn't create the order. Please try again.",
+      "paymentUnavailable": "That payment method isn't available right now. Choose cash on delivery."
+    },
+    "methods": {
+      "CARD": {
+        "title": "Debit or credit card",
+        "hint": "Pay on Wompi's secure gateway (sandbox mode).",
+        "simulatedHint": "Simulated payment gateway (demo): you choose whether the payment is approved or declined. No money is charged."
+      },
+      "PSE": {
+        "title": "PSE",
+        "hint": "Bank transfer from your account through Wompi (sandbox mode).",
+        "simulatedHint": "Simulated gateway (demo) that mimics a PSE bank debit. No money is charged."
+      },
+      "COD": {
+        "title": "Cash on delivery",
+        "hint": "Pay when it arrives. We'll confirm your order before shipping it."
+      }
+    },
+    "wompiUnavailable": "Unavailable: the Wompi keys are missing in this environment.",
+    "placeAndPay": "Place order and pay"
   },
   "Orders": {
     "empty": "You don't have orders yet.",
@@ -478,6 +493,45 @@
       "CARD": "Card",
       "PSE": "PSE",
       "COD": "Cash on delivery"
-    }
+    },
+    "retryLimited": "Too many payment attempts. Wait a while and try again.",
+    "paidNow": "Payment approved! Your order is confirmed."
+  },
+  "Payments": {
+    "title": "Payment",
+    "payHint": "Your order is reserved. Complete the payment on {gateway, select, simulated {the simulated gateway} other {Wompi}} before it expires.",
+    "redirecting": "Taking you to {gateway, select, simulated {the simulated gateway} other {Wompi}} to complete the payment…",
+    "payNow": "Pay now",
+    "sandboxNote": "Sandbox mode: use Wompi's test cards and banks; no real money is charged.",
+    "processing": "Wompi is processing your payment. This page updates on its own.",
+    "failed": {
+      "DECLINED": "Your payment was declined.",
+      "OTHER": "The payment wasn't completed."
+    },
+    "payAgain": "Pay again",
+    "retryHint": "A new attempt with a new reference is created. The order stays reserved until it expires.",
+    "expired": "The time to pay this order is over; it will be cancelled automatically.",
+    "simulatedNote": "Demo: this store uses a simulated gateway in place of Wompi. No card details are asked for and no money is charged."
+  },
+  "SimulatedGateway": {
+    "title": "Simulated payment gateway",
+    "badge": "Demo · no real money",
+    "intro": "This screen stands in for Wompi's checkout on the public demo. Choose what the bank answers and watch the store process the result.",
+    "order": "Order",
+    "reference": "Reference",
+    "method": "Method",
+    "methods": {
+      "CARD": "Card (simulated)",
+      "PSE": "PSE (simulated)"
+    },
+    "expires": "Expires at",
+    "amount": "Amount due",
+    "approve": "Approve payment",
+    "decline": "Decline payment",
+    "error": "Simulate a gateway error",
+    "back": "Back to the order without paying",
+    "unavailable": "This payment attempt is no longer available: it was already resolved, the order expired, or it is not yours.",
+    "toOrders": "Go to my orders",
+    "disclaimer": "Demo gateway: it asks for no card details, talks to no bank and moves no money. The real Wompi integration ships with the project and turns on with its keys."
   }
 }
