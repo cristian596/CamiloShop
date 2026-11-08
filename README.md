@@ -2,11 +2,13 @@
 
 E-commerce de portafolio con estilo lujoso y urbano: tecnología, cosméticos y ropa. Construido con Next.js 16 (App Router), TypeScript estricto, Tailwind CSS v4, Supabase, Prisma y Cloudflare Workers (OpenNext).
 
-> **Estado:** fase 3 de 7 (catálogo completo y cuentas de usuario: registro, ingreso con correo o Google, recuperación de contraseña, perfil, direcciones, favoritos y páginas legales). El carrito y el checkout llegan en la fase 4.
+> **Estado:** fase 4 de 7 (catálogo, cuentas de usuario, carrito y checkout con pago contra entrega, pedidos y comprobante PDF). Los pagos con tarjeta y PSE (Wompi sandbox) llegan en la fase 5.
 
 ## Probar la tienda como visitante
 
 En `/es/login` pulsa **"Entrar como demo"**: inicia sesión con una cuenta de cliente compartida, sin registrarte. Es el camino recomendado porque, sin dominio propio, los correos de verificación y bienvenida solo llegan al dueño de la cuenta de Resend (ver _Limitaciones conocidas_). La cuenta demo no puede cambiar su contraseña. El administrador de demo no es público.
+
+Para probar una compra: agrega productos al carrito, ve a pagar, aplica el cupón `CLAUDE10` (10 %) o `GEMINI5` (5 %), elige **pago contra entrega** y confirma. El pedido queda **pendiente**; puedes descargar el comprobante en PDF o cancelarlo desde _Mi cuenta → Pedidos_. Los pedidos pendientes de la cuenta demo se cancelan solos cada día.
 
 > Los pagos funcionarán en **modo sandbox**: no se cobra dinero real.
 
@@ -17,7 +19,7 @@ En `/es/login` pulsa **"Entrar como demo"**: inicia sesión con una cuenta de cl
 | Framework      | Next.js 16 (App Router) + React 19 + TypeScript 6 (strict)                          |
 | Estilos        | Tailwind CSS v4 (solo utilidades; `src/app/globals.css` contiene únicamente tokens) |
 | i18n           | next-intl: español (`/es`, principal) e inglés (`/en`)                              |
-| Estado global  | Zustand (moneda y vistos recientemente; el carrito llega en la fase 4)              |
+| Estado global  | Zustand (carrito, moneda y vistos recientemente, guardados en el navegador)         |
 | Base de datos  | Supabase Postgres + Prisma 7 (`@prisma/adapter-pg`) vía Cloudflare Hyperdrive       |
 | Auth / Storage | Supabase Auth (correo y Google) y Storage (fase 6)                                  |
 | Emails         | API de Resend (bienvenida; pedidos en las fases 4 y 5)                              |
@@ -145,6 +147,16 @@ Abre http://localhost:3000; te redirige a `/es`.
 
 > **Windows:** OpenNext advierte que Windows no está soportado del todo. El build funciona con webpack; si aparece algún error de symlinks, usa WSL o activa el Modo de Desarrollador de Windows.
 
+## Pedidos (fase 4)
+
+- **Precios con IVA incluido:** el resumen muestra subtotal, descuento, envío, base gravable (total / 1,19) e IVA. Base + IVA siempre suman el total exacto. El envío también incluye IVA.
+- **Envío:** tarifa por ciudad (tabla `ShippingRate`, con una fila `DEFAULT` para el resto) y gratis cuando la compra, después del cupón, llega a $200.000.
+- **Nada del navegador se usa para cobrar:** el carrito vive en el navegador, pero al confirmar el servidor vuelve a leer precios, stock, cupón y tarifa.
+- **Stock seguro ante compras simultáneas:** al crear el pedido, cada variante se descuenta con un `UPDATE ... WHERE stock >= cantidad` dentro de una transacción; si no alcanza, todo se revierte. Un test con 6 compras simultáneas sobre la última unidad deja exactamente un pedido.
+- **Vencimiento:** pg_cron cancela cada 5 minutos los pedidos pendientes vencidos (`ORDER_EXPIRY_MINUTES`, 30; contra entrega `COD_ORDER_EXPIRY_MINUTES`, 2880 = 48 h). Cancelar, desde el cliente, el cron o el admin, devuelve el stock y el cupón una sola vez.
+- **Comprobante:** `/api/invoice/<número>` genera un PDF para el dueño del pedido o un admin. **No es una factura electrónica DIAN.**
+- **Contra entrega:** el pedido queda pendiente hasta que el admin lo confirme como pagado (fase 6).
+
 ## Diseño
 
 - Paleta: fondo `#0b0f19`, violeta `#7c3aed` (botones y cabeceras), cyan `#22d3ee` y rosa `#f472b6` (acentos), claro `#f8fafc`.
@@ -173,6 +185,7 @@ docs/               decisiones técnicas
 ## Limitaciones conocidas
 
 - **Emails:** sin dominio propio, Resend envía con `onboarding@resend.dev` y **solo entrega al correo del dueño de la cuenta**. Por eso, el camino principal para visitantes es el botón **"Entrar como demo"**. Un envío fallido se registra en los logs y nunca interrumpe el registro ni los pedidos. Verificar un dominio propio queda como mejora futura.
+- **Numeración de pedidos:** sale de una secuencia de Postgres; un pedido que falla dentro de la transacción consume su número, así que puede haber saltos (CS-2026-000016, CS-2026-000020…).
 - **Páginas legales:** términos, tratamiento de datos (Ley 1581) y devoluciones son **plantillas** y deben revisarlas un abogado antes de usarlas en un comercio real.
 - **Supabase Free pausa el proyecto** tras unos días sin actividad. Para reactivarlo: entra a supabase.com, abre el proyecto y pulsa _Restore project_. En la fase 7b se agrega un workflow que hace ping a `/api/health` cada 3 días para evitarlo.
 

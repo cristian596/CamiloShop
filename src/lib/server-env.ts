@@ -14,6 +14,10 @@ const serverSchema = z.object({
   RATE_LIMIT_SALT: z.string().min(16).optional(),
   DEMO_USER_EMAIL: z.email().optional(),
   DEMO_USER_PASSWORD: z.string().min(8).optional(),
+  /** Minutes an unpaid card/PSE order keeps its stock reserved. */
+  ORDER_EXPIRY_MINUTES: z.coerce.number().int().positive().default(30),
+  /** Minutes a cash-on-delivery order waits for admin confirmation. */
+  COD_ORDER_EXPIRY_MINUTES: z.coerce.number().int().positive().default(2880),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -31,5 +35,7 @@ export function getServerEnv(): ServerEnv {
     RATE_LIMIT_SALT: process.env.RATE_LIMIT_SALT || undefined,
     DEMO_USER_EMAIL: process.env.DEMO_USER_EMAIL || undefined,
     DEMO_USER_PASSWORD: process.env.DEMO_USER_PASSWORD || undefined,
+    ORDER_EXPIRY_MINUTES: process.env.ORDER_EXPIRY_MINUTES || undefined,
+    COD_ORDER_EXPIRY_MINUTES: process.env.COD_ORDER_EXPIRY_MINUTES || undefined,
   });
 }

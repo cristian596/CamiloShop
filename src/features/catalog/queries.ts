@@ -4,6 +4,7 @@ import { cache } from "react";
 import { PAGE_SIZE, isColorKey, sortSizes, type ColorKey } from "@/config/catalog";
 import { getDb } from "@/lib/db";
 import { publicEnv } from "@/lib/env";
+import { DEFAULT_FREE_SHIPPING_THRESHOLD, DEFAULT_TAX_RATE } from "@/features/checkout/pricing";
 import type { ListingFilters, SortOption } from "./listing-params";
 import { escapeLikePattern } from "./search-query";
 import type { VariantOption } from "./variants";
@@ -95,15 +96,42 @@ export function buildProductWhere(
 }
 
 /** Display-only COP→USD rate from the Setting table, with an env fallback. */
-export const getUsdRate = cache(async (): Promise<number> => {
+export interface StoreSettings {
+  /** Display-only COP -> USD rate. */
+  usdRate: number;
+  freeShippingThreshold: number;
+  taxRate: number;
+}
+
+function positiveNumber(value: unknown, fallback: number) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+
+/** Store-wide settings from the Setting table, with safe defaults. */
+export const getStoreSettings = cache(async (): Promise<StoreSettings> => {
+  const defaults: StoreSettings = {
+    usdRate: publicEnv.NEXT_PUBLIC_DEFAULT_USD_RATE,
+    freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD,
+    taxRate: DEFAULT_TAX_RATE,
+  };
   try {
-    const setting = await getDb().setting.findUnique({ where: { key: "usdRate" } });
-    const value = Number(setting?.value);
-    return Number.isFinite(value) && value > 0 ? value : publicEnv.NEXT_PUBLIC_DEFAULT_USD_RATE;
+    const rows = await getDb().setting.findMany({
+      where: { key: { in: ["usdRate", "freeShippingThreshold", "taxRate"] } },
+    });
+    const value = (key: string) => rows.find((row) => row.key === key)?.value;
+    return {
+      usdRate: positiveNumber(value("usdRate"), defaults.usdRate),
+      freeShippingThreshold: positiveNumber(
+        value("freeShippingThreshold"),
+        defaults.freeShippingThreshold,
+      ),
+      taxRate: positiveNumber(value("taxRate"), defaults.taxRate),
+    };
   } catch (error) {
-    // The rate is cosmetic; never take the whole page down because of it.
-    console.error("[catalog] could not read usdRate", error);
-    return publicEnv.NEXT_PUBLIC_DEFAULT_USD_RATE;
+    // Rendering pages must not depend on this read; checkout re-reads it in its transaction.
+    console.error("[catalog] could not read settings", error);
+    return defaults;
   }
 });
 

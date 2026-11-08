@@ -2,9 +2,11 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-interface StoreConfig {
+export interface StoreConfig {
   /** Display-only COP→USD rate, read from the Setting table on the server. */
   usdRate: number;
+  /** COP amount (after discounts) from which shipping is free; display only. */
+  freeShippingThreshold: number;
 }
 
 const StoreConfigContext = createContext<StoreConfig | null>(null);

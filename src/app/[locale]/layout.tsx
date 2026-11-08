@@ -11,7 +11,7 @@ import { focusRing } from "@/components/ui/styles";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { Providers } from "@/components/layout/providers";
-import { getUsdRate } from "@/features/catalog/queries";
+import { getStoreSettings } from "@/features/catalog/queries";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora", display: "swap" });
@@ -51,7 +51,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 
-  const [t, usdRate] = await Promise.all([getTranslations("Common"), getUsdRate()]);
+  const [t, settings] = await Promise.all([getTranslations("Common"), getStoreSettings()]);
 
   return (
     <html
@@ -61,7 +61,12 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     >
       <body className="flex min-h-dvh flex-col bg-canvas font-sans text-fg antialiased">
         <NextIntlClientProvider>
-          <Providers usdRate={usdRate}>
+          <Providers
+            config={{
+              usdRate: settings.usdRate,
+              freeShippingThreshold: settings.freeShippingThreshold,
+            }}
+          >
             <a
               href="#main-content"
               className={cn(

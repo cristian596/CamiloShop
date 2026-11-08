@@ -149,6 +149,15 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             </header>
 
             <PurchasePanel
+              product={{
+                id: product.id,
+                slug: product.slug,
+                name: product.name,
+                brand: product.brand.name,
+                image: product.images[0]
+                  ? { url: product.images[0].url, alt: product.images[0].alt }
+                  : null,
+              }}
               price={product.price}
               compareAtPrice={product.compareAtPrice}
               variants={product.variants}

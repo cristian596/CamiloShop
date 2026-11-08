@@ -51,4 +51,18 @@ describe.skipIf(!url || !anonKey)("RLS with the anon key", () => {
     // No UPDATE policy: zero rows are affected.
     expect(data ?? []).toEqual([]);
   });
+
+  it.each([
+    [
+      "cancel_order",
+      { p_order_id: "00000000-0000-0000-0000-000000000000", p_actor: null, p_note: "x" },
+    ],
+    ["expire_pending_orders", {}],
+    ["next_order_number", {}],
+    ["reset_demo_data", {}],
+  ])("cannot call %s through the Data API", async (fn, args) => {
+    const { error } = await supabase.rpc(fn, args);
+    // EXECUTE was revoked from anon: permission denied, or hidden from the schema cache.
+    expect(error).not.toBeNull();
+  });
 });

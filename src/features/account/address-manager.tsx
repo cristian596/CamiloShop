@@ -44,7 +44,7 @@ const smallButton = cn(
   focusRing,
 );
 
-function AddressForm({
+export function AddressForm({
   address,
   cities,
   onDone,

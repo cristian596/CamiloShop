@@ -149,3 +149,21 @@ Alternativas si algún día se prefiere Turbopack: activar el Modo de Desarrolla
 - **Emails:** `sendEmail()` llama a la API REST de Resend con `fetch`, nunca lanza excepciones y registra los fallos. Las plantillas son HTML con estilos en línea (`src/lib/email/templates.ts`) en lugar de React Email, para no sumar peso al Worker. La bienvenida se envía una sola vez: se reclama `welcomeEmailSentAt` con un `UPDATE` condicional y el envío corre en `waitUntil`.
 - **Formularios:** React 19 resetea un `<form action>` después de cada acción. Eso borraba la contraseña tras un error y dejaba el `<select>` de departamento en otra opción, que se llegaba a guardar. Los formularios despachan la acción desde `onSubmit` sin reset (`submitWithoutReset`) y conservan `action` para funcionar sin JavaScript.
 - **Tamaño del Worker:** 2,51 MiB comprimido (antes 2,16 MiB; la Admin API de Supabase y los formularios suman ~0,35 MiB). Quedan ~0,49 MiB del plan Free. Las fases 4–6 suman el PDF del comprobante y Recharts; si no caben, la opción prevista es Workers Paid (10 MiB).
+
+## Deploy de la fase 3 (6 de noviembre de 2026)
+
+- Worker: 2,51 MiB comprimido, arranque en 43 ms.
+- Verificado en producción: rutas de auth, redirección de `/account` y `/admin`, "Entrar como demo", cliente rechazado en `/admin`, cierre de sesión y salida hacia Google con el retorno a `/auth/callback`.
+- Verificado por API: el hook agrega `app_metadata.user_role`, Google está habilitado y los secretos del Worker existen.
+- Pendiente de una prueba manual con cuentas reales: terminar el ingreso con Google, el correo de recuperación, la entrega de la bienvenida y `/admin` con el usuario admin.
+
+## Fase 4: carrito, checkout y pedidos
+
+- **Carrito en el navegador** (Zustand persistido, igual que las otras preferencias). Al abrir el carrito o el checkout se consultan precio y stock actuales y se avisa de cada cambio (precio, cantidad ajustada, producto retirado). Sin compra como invitado: `/checkout` exige sesión.
+- **Cálculos puros** en `src/features/checkout/pricing.ts` (IVA incluido, envío por ciudad, umbral de envío gratis después del cupón, cupones PERCENT con redondeo hacia abajo y FIXED sin pasar del subtotal), con tests.
+- **`placeOrder`** recibe el cliente de Prisma como parámetro para poder probarlo contra la base real. Hace todo en una transacción interactiva: recalcula, reserva stock en orden de id (evita interbloqueos), reclama el cupón con un incremento condicional (`usedCount < maxUses`), numera el pedido y crea ítems, historial, intento de pago (`<número>-A1`) y redención.
+- **Cancelación en SQL** (`public.cancel_order`): bloquea la fila, solo actúa si el pedido está PENDING o PAID y, en la misma transacción, devuelve el stock, borra la redención y decrementa el cupón, anula pagos pendientes y registra el historial. Llamarla dos veces no devuelve nada dos veces. La usan el cliente, el cron y (en la fase 6) el admin. Las funciones tienen `EXECUTE` revocado a `anon` y `authenticated`, y un test confirma que la Data API no puede llamarlas.
+- **pg_cron:** `expire-pending-orders` (cada 5 min), `purge-rate-limit-hits` (diario) y `reset-demo-data` (diario, 03:00 en Bogotá: cancela pedidos pendientes del demo y borra sus favoritos y direcciones extra). El correo del demo se guarda en `Setting.demoUserEmail` desde el seed.
+- **Comprobante PDF con pdf-lib** (JavaScript puro, funciona en Workers). Usa las fuentes estándar de PDF; los caracteres fuera de WinAnsi (emojis) se reemplazan por "?".
+- **Email de confirmación:** se envía en `waitUntil` y nunca bloquea el pedido. Con el usuario demo (`example.com`) Resend lo rechaza y el error queda en los logs; es lo esperado.
+- **Tamaño del Worker: 2,77 MiB comprimido** (antes 2,51; pdf-lib y el checkout suman ~0,26 MiB). Quedan ~0,23 MiB del plan Free. Wompi (fase 5) es poco código, pero el admin con Recharts (fase 6) casi seguro no cabe: hay que decidir entre Workers Paid (USD 5/mes, 10 MiB) o recortar.

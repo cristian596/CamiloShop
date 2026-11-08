@@ -1,4 +1,4 @@
-import { LogIn, ShoppingBag } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { ROOT_CATEGORIES, categoryHref } from "@/config/categories";
 import { Link } from "@/i18n/navigation";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { focusRing } from "@/components/ui/styles";
+import { CartButton } from "@/features/cart/cart-button";
 import { CurrencySwitcher } from "./currency-switcher";
 import { LocaleSwitcher } from "./locale-switcher";
 import { Logo } from "./logo";
@@ -51,13 +52,7 @@ export async function Header() {
               <span className="sr-only sm:not-sr-only">{t("signIn")}</span>
             </Link>
           )}
-          <Link
-            href="/cart"
-            aria-label={t("cart")}
-            className={buttonClasses({ variant: "ghost", size: "icon" })}
-          >
-            <ShoppingBag className="size-5" aria-hidden="true" />
-          </Link>
+          <CartButton />
         </div>
       </Container>
       <Container className="pb-3 md:hidden">

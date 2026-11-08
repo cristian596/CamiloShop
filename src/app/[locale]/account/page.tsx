@@ -24,7 +24,7 @@ export default async function AccountPage({ params }: AccountPageProps) {
   const user = await requireUser("/account");
 
   const db = getDb();
-  const [t, format, profile, addressCount, favoriteCount] = await Promise.all([
+  const [t, format, profile, addressCount, favoriteCount, orderCount] = await Promise.all([
     getTranslations("Account"),
     getFormatter(),
     db.profile.findUnique({
@@ -33,12 +33,13 @@ export default async function AccountPage({ params }: AccountPageProps) {
     }),
     db.address.count({ where: { userId: user.id } }),
     db.favorite.count({ where: { userId: user.id, product: { isActive: true } } }),
+    db.order.count({ where: { userId: user.id } }),
   ]);
 
   const cards = [
     { href: "/account/profile", label: t("profile"), icon: UserRound, value: null },
     { href: "/account/addresses", label: t("addresses"), icon: MapPin, value: addressCount },
-    { href: "/account/orders", label: t("orders"), icon: Package, value: 0 },
+    { href: "/account/orders", label: t("orders"), icon: Package, value: orderCount },
     { href: "/account/favorites", label: t("favorites"), icon: Heart, value: favoriteCount },
   ] as const;
 

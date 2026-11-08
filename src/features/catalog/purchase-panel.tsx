@@ -9,6 +9,7 @@ import { discountPercent } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Price } from "@/components/layout/price";
+import { useCart, useCartDrawer, type CartLine } from "@/stores/cart";
 import {
   LOW_STOCK_THRESHOLD,
   applySelection,
@@ -20,6 +21,8 @@ import {
 } from "./variants";
 
 interface PurchasePanelProps {
+  /** What the cart line needs to render without another request. */
+  product: { id: string } & Pick<CartLine, "slug" | "name" | "brand" | "image">;
   price: number;
   compareAtPrice: number | null;
   variants: VariantOption[];
@@ -31,6 +34,7 @@ const chipBase =
   "inline-flex h-10 min-w-12 cursor-pointer items-center justify-center gap-2 rounded-full border px-4 text-sm transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus";
 
 export function PurchasePanel({
+  product,
   price,
   compareAtPrice,
   variants,
@@ -49,6 +53,29 @@ export function PurchasePanel({
   const stock = variant?.stock ?? 0;
 
   const colorLabel = (color: string) => (isColorKey(color) ? tc(color) : color);
+  const addLine = useCart((state) => state.add);
+  const openDrawer = useCartDrawer((state) => state.setOpen);
+  const [added, setAdded] = useState(false);
+
+  function addToCart() {
+    if (!variant || stock === 0) return;
+    addLine({
+      variantId: variant.id,
+      productId: product.id,
+      slug: product.slug,
+      sku: variant.sku,
+      name: product.name,
+      brand: product.brand,
+      image: product.image,
+      size: variant.size,
+      color: variant.color,
+      unitPrice,
+      quantity: 1,
+      maxQuantity: stock,
+    });
+    setAdded(true);
+    openDrawer(true);
+  }
 
   function choose(axis: "size" | "color", value: string) {
     const next = applySelection(variants, selection, axis, value);
@@ -185,18 +212,17 @@ export function PurchasePanel({
       </p>
 
       <div className="flex flex-col gap-2">
-        {/* The cart arrives with checkout; the button is shown disabled until then. */}
         <Button
           size="lg"
-          disabled
-          aria-describedby={`${groupId}-cart-note`}
+          disabled={!variant || stock === 0}
+          onClick={addToCart}
           className="w-full sm:w-auto"
         >
           <ShoppingBag className="size-5" aria-hidden="true" />
-          {t("addToCart")}
+          {stock === 0 ? t("outOfStock") : t("addToCart")}
         </Button>
-        <p id={`${groupId}-cart-note`} className="text-xs text-muted">
-          {stock === 0 ? t("outOfStock") : t("cartComingSoon")}
+        <p role="status" className="text-xs text-cyan-fg">
+          {added ? t("addedToCart") : ""}
         </p>
       </div>
 

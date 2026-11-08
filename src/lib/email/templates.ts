@@ -81,3 +81,146 @@ export function welcomeEmail({
     text: `${copy.greeting}\n\n${copy.intro}\n\n${copy.cta}: ${shopUrl}`,
   };
 }
+
+export interface OrderEmailData {
+  number: string;
+  paymentMethod: "CARD" | "PSE" | "COD";
+  items: { name: string; variant: string; quantity: number; lineTotal: number }[];
+  subtotal: number;
+  discount: number;
+  couponCode: string | null;
+  shippingCost: number;
+  taxBase: number;
+  taxAmount: number;
+  total: number;
+  address: {
+    recipient: string;
+    line1: string;
+    line2: string | null;
+    city: string;
+    department: string;
+  };
+}
+
+function cop(amount: number, locale: Locale) {
+  return new Intl.NumberFormat(locale === "es" ? "es-CO" : "en-US", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+const ORDER_COPY = {
+  es: {
+    subject: (number: string) => `Recibimos tu pedido ${number}`,
+    greeting: (name: string | null) => (name ? `Hola, ${name}:` : "Hola:"),
+    intro: (number: string) => `Recibimos tu pedido ${number}. Este es el resumen.`,
+    cod: "Pago contra entrega: confirmaremos tu pedido y pagarás al recibirlo.",
+    online: "Te avisaremos cuando confirmemos el pago.",
+    subtotal: "Subtotal",
+    discount: "Descuento",
+    shipping: "Envío",
+    free: "Gratis",
+    taxBase: "Base gravable",
+    tax: "IVA 19 %",
+    total: "Total",
+    shipTo: "Enviar a",
+    cta: "Ver mi pedido",
+    receipt: "El comprobante de compra no es una factura electrónica DIAN.",
+  },
+  en: {
+    subject: (number: string) => `We received your order ${number}`,
+    greeting: (name: string | null) => (name ? `Hi ${name},` : "Hi,"),
+    intro: (number: string) => `We received your order ${number}. Here is the summary.`,
+    cod: "Cash on delivery: we'll confirm your order and you'll pay when it arrives.",
+    online: "We'll let you know once the payment is confirmed.",
+    subtotal: "Subtotal",
+    discount: "Discount",
+    shipping: "Shipping",
+    free: "Free",
+    taxBase: "Taxable base",
+    tax: "VAT 19%",
+    total: "Total",
+    shipTo: "Ship to",
+    cta: "View my order",
+    receipt: "The purchase receipt is not a DIAN electronic invoice.",
+  },
+} as const;
+
+export function orderConfirmationEmail({
+  to,
+  name,
+  locale,
+  siteUrl,
+  order,
+}: {
+  to: string;
+  name: string | null;
+  locale: Locale;
+  siteUrl: string;
+  order: OrderEmailData;
+}): EmailMessage {
+  const copy = ORDER_COPY[locale];
+  const orderUrl = `${siteUrl}/${locale}/account/orders/${encodeURIComponent(order.number)}`;
+  const row = (label: string, value: string, strong = false) =>
+    `<tr><td style="padding:4px 0;color:#9ca3af">${escapeHtml(label)}</td><td align="right" style="padding:4px 0;${strong ? "font-weight:700;color:#f8fafc;font-size:17px" : ""}">${escapeHtml(value)}</td></tr>`;
+
+  const items = order.items
+    .map(
+      (item) =>
+        `<tr><td style="padding:8px 0;border-bottom:1px solid #1f2937">${escapeHtml(item.name)}${item.variant ? `<br><span style="font-size:13px;color:#9ca3af">${escapeHtml(item.variant)}</span>` : ""}<br><span style="font-size:13px;color:#9ca3af">× ${item.quantity}</span></td><td align="right" style="padding:8px 0;border-bottom:1px solid #1f2937">${escapeHtml(cop(item.lineTotal, locale))}</td></tr>`,
+    )
+    .join("");
+
+  const totals = [
+    row(copy.subtotal, cop(order.subtotal, locale)),
+    order.discount > 0
+      ? row(
+          `${copy.discount}${order.couponCode ? ` (${order.couponCode})` : ""}`,
+          `-${cop(order.discount, locale)}`,
+        )
+      : "",
+    row(copy.shipping, order.shippingCost === 0 ? copy.free : cop(order.shippingCost, locale)),
+    row(copy.taxBase, cop(order.taxBase, locale)),
+    row(copy.tax, cop(order.taxAmount, locale)),
+    row(copy.total, cop(order.total, locale), true),
+  ].join("");
+
+  const address = [
+    order.address.recipient,
+    [order.address.line1, order.address.line2].filter(Boolean).join(", "),
+    `${order.address.city}, ${order.address.department}`,
+  ];
+
+  const body = `<p style="margin:0 0 12px">${escapeHtml(copy.greeting(name))}</p>
+<p style="margin:0 0 8px">${escapeHtml(copy.intro(order.number))}</p>
+<p style="margin:0 0 20px;color:#67e8f9">${escapeHtml(order.paymentMethod === "COD" ? copy.cod : copy.online)}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">${items}</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;font-size:14px">${totals}</table>
+<p style="margin:20px 0 4px;font-weight:600">${escapeHtml(copy.shipTo)}</p>
+<p style="margin:0 0 20px;color:#9ca3af">${address.map(escapeHtml).join("<br>")}</p>
+${button(orderUrl, copy.cta)}
+<p style="margin:20px 0 0;font-size:12px;color:#9ca3af">${escapeHtml(copy.receipt)}</p>`;
+
+  const text = [
+    copy.greeting(name),
+    "",
+    copy.intro(order.number),
+    order.paymentMethod === "COD" ? copy.cod : copy.online,
+    "",
+    ...order.items.map(
+      (item) =>
+        `${item.quantity} × ${item.name}${item.variant ? ` (${item.variant})` : ""}: ${cop(item.lineTotal, locale)}`,
+    ),
+    "",
+    `${copy.total}: ${cop(order.total, locale)} (${copy.tax}: ${cop(order.taxAmount, locale)})`,
+    `${copy.cta}: ${orderUrl}`,
+  ].join("\n");
+
+  return {
+    to,
+    subject: copy.subject(order.number),
+    html: layout({ locale, preheader: copy.intro(order.number), body }),
+    text,
+  };
+}

@@ -2,19 +2,21 @@
 
 import { ThemeProvider } from "next-themes";
 import { useEffect, type ReactNode } from "react";
+import { useCart } from "@/stores/cart";
 import { usePreferences } from "@/stores/preferences";
 import { useRecentlyViewed } from "@/stores/recently-viewed";
-import { StoreConfigProvider } from "./store-config";
+import { StoreConfigProvider, type StoreConfig } from "./store-config";
 
 interface ProvidersProps {
-  usdRate: number;
+  config: StoreConfig;
   children: ReactNode;
 }
 
-export function Providers({ usdRate, children }: ProvidersProps) {
+export function Providers({ config, children }: ProvidersProps) {
   useEffect(() => {
     void usePreferences.persist.rehydrate();
     void useRecentlyViewed.persist.rehydrate();
+    void useCart.persist.rehydrate();
   }, []);
 
   return (
@@ -24,7 +26,7 @@ export function Providers({ usdRate, children }: ProvidersProps) {
       enableSystem={false}
       disableTransitionOnChange
     >
-      <StoreConfigProvider value={{ usdRate }}>{children}</StoreConfigProvider>
+      <StoreConfigProvider value={config}>{children}</StoreConfigProvider>
     </ThemeProvider>
   );
 }

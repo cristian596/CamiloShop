@@ -261,6 +261,13 @@ async function seedDemoUser() {
     },
   });
 
+  // Read by public.reset_demo_data() (pg_cron, daily).
+  await prisma.setting.upsert({
+    where: { key: "demoUserEmail" },
+    update: { value: email },
+    create: { key: "demoUserEmail", value: email },
+  });
+
   await prisma.address.deleteMany({ where: { userId } });
   await prisma.address.create({
     data: {
