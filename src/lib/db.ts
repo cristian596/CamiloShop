@@ -1,28 +1,33 @@
 import "server-only";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { cache } from "react";
 import { PrismaClient } from "@prisma/client";
+import { attachDatabasePool } from "@vercel/functions";
+import { Pool } from "pg";
 
-function resolveConnectionString(): string {
-  const { env } = getCloudflareContext();
-  // In production the HYPERDRIVE binding provides a pooled connection string.
-  // Locally, wrangler fills it from CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE.
-  const connectionString = env.HYPERDRIVE?.connectionString || process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("No database connection string: configure HYPERDRIVE or DATABASE_URL");
-  }
-  return connectionString;
+/*
+ * One Prisma client per server instance. On Vercel (Fluid compute) an instance
+ * serves many requests, so the pg pool is shared and reused; attachDatabasePool
+ * closes idle connections before the instance is suspended, so they do not
+ * leak. DATABASE_URL points at Supabase's transaction pooler (port 6543), which
+ * multiplexes the connections of every instance onto a few Postgres backends.
+ */
+
+const POOL_SIZE = 5;
+
+const globalForDb = globalThis as typeof globalThis & { camiloshopDb?: PrismaClient };
+
+function createClient(): PrismaClient {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) throw new Error("DATABASE_URL is not configured");
+
+  const pool = new Pool({ connectionString, max: POOL_SIZE });
+  // Outside Vercel (next dev, next start, tests) this is a no-op.
+  attachDatabasePool(pool);
+  return new PrismaClient({ adapter: new PrismaPg(pool) });
 }
 
-/**
- * Returns a Prisma client scoped to the current request.
- *
- * Workers cannot reuse TCP connections across requests, so a global client would
- * break later requests. `maxUses: 1` keeps pg from recycling connections, and
- * React's `cache` dedupes the client within a single server render.
- */
-export const getDb = cache((): PrismaClient => {
-  const adapter = new PrismaPg({ connectionString: resolveConnectionString(), maxUses: 1 });
-  return new PrismaClient({ adapter });
-});
+/** The shared Prisma client (also survives hot reloads in `next dev`). */
+export function getDb(): PrismaClient {
+  globalForDb.camiloshopDb ??= createClient();
+  return globalForDb.camiloshopDb;
+}

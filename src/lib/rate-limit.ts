@@ -20,15 +20,16 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 /**
- * Salted SHA-256 of the client IP. The plain IP is never stored. Cloudflare sets
- * CF-Connecting-IP; x-forwarded-for is only a local-development fallback.
+ * Salted SHA-256 of the client IP. The plain IP is never stored. Vercel sets
+ * x-vercel-forwarded-for and overwrites x-forwarded-for, so clients cannot spoof
+ * them; never trust a header the platform does not overwrite (e.g. a client could
+ * send CF-Connecting-IP to get a fresh rate-limit bucket on every request).
  */
 export async function clientIpKey(): Promise<string> {
   const requestHeaders = await headers();
-  const ip =
-    requestHeaders.get("cf-connecting-ip") ??
-    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    "unknown";
+  const forwarded =
+    requestHeaders.get("x-vercel-forwarded-for") ?? requestHeaders.get("x-forwarded-for");
+  const ip = forwarded?.split(",")[0]?.trim() || "unknown";
 
   let salt = getServerEnv().RATE_LIMIT_SALT;
   if (!salt) {
@@ -40,7 +41,7 @@ export async function clientIpKey(): Promise<string> {
 
 /**
  * Records one attempt and reports whether it is within the limit. Counting in
- * Postgres works across Worker isolates, unlike in-memory counters. Two requests
+ * Postgres works across serverless instances, unlike in-memory counters. Two requests
  * racing at the edge of the window can both pass; that is acceptable here.
  */
 export async function consumeRateLimit(key: string, rule: RateLimitRule): Promise<boolean> {

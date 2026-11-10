@@ -28,7 +28,7 @@ function redirectWithCookies(request: NextRequest, from: NextResponse, pathname:
  * Locale negotiation, session refresh and route guards. The guards only improve
  * UX: every protected page and action re-checks with requireUser()/requireAdmin().
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const intlResponse = handleI18n(request);
   // next-intl is redirecting (e.g. "/" -> "/es"); the guard runs on the next request.
   if (intlResponse.headers.has("location")) return intlResponse;

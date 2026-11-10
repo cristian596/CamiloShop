@@ -199,3 +199,27 @@ Alternativas si algún día se prefiere Turbopack: activar el Modo de Desarrolla
   - Se conserva `provider = WOMPI` (sin migración) y las transacciones simuladas se distinguen por el id `sim_…`.
 
   El código real de Wompi no cambió: queda listo para activarse con las llaves.
+
+## Deploy de la pasarela simulada (7 de noviembre de 2026)
+
+- Versión `83b9943e`, 2,71 MiB comprimido. En producción un pedido con "Aprobar pago" quedó PAID en la base al instante.
+- **Caché de Hyperdrive desactivada** (`wrangler hyperdrive update <id> --caching-disabled`). Venía activada por defecto y servía lecturas de hasta 60 s de antigüedad: el pedido recién pagado seguía viéndose "Pendiente", y lo mismo pasaba con el stock, las direcciones y los favoritos. Hyperdrive sigue haciendo pooling de conexiones.
+- **Límite de CPU del plan Free:** medido con `wrangler tail`, las peticiones que terminan bien usan entre 23 y 637 ms de CPU, y cerca de la mitad muere a los 10 ms con `exceededCpu` (503). Pasa incluso con `/api/health`, así que lo que pesa es arrancar el bundle de Next.js y no una página en particular: recortar código de las páginas no lo resuelve.
+
+## Migración a Vercel (9 de noviembre de 2026)
+
+Reemplaza las decisiones de hosting de la fase 1 (Cloudflare Workers + OpenNext + Hyperdrive) y la de `middleware.ts`.
+
+- **Por qué:** en Workers Free cerca de la mitad de las peticiones moría a los 10 ms de CPU (ver la sección anterior). Workers Paid costaba USD 5 al mes. Se eligió **Vercel Hobby**, que es gratis, corre Next.js de forma nativa y no tiene un límite de CPU de 10 ms. Hobby es para uso no comercial, lo que encaja con un portafolio.
+- **Base de datos:** Prisma 7 con `@prisma/adapter-pg` y un `Pool` de `pg` compartido por instancia (máximo 5 conexiones), registrado con `attachDatabasePool` de `@vercel/functions`. Es el patrón de la guía de Prisma para Vercel Fluid compute.
+  - `DATABASE_URL` apunta al **transaction pooler de Supabase (6543)**.
+  - Los 25 tests de integración pasan contra ese pooler: concurrencia de stock, transacciones interactivas, `cancel_order` y pagos.
+  - `DIRECT_URL` (session pooler) queda para migraciones, seed y tests.
+  - Ya no hace falta un cliente por request ni `maxUses: 1`, que eran limitaciones de Workers.
+- **Trabajo en segundo plano:** `runInBackground` usa `after()` de Next.js, que en Vercel equivale a `waitUntil`.
+- **Proxy:** `src/middleware.ts` pasó a `src/proxy.ts`, la convención de Next 16, que corre en Node.js. En OpenNext era experimental; en Vercel está soportado.
+- **IP para el rate limit:** antes se leía `CF-Connecting-IP`. En Vercel ese header lo puede mandar cualquier cliente, así que se habría podido falsear para saltarse el límite de "Entrar como demo". Ahora se usa `x-vercel-forwarded-for` / `x-forwarded-for`, que Vercel sobrescribe.
+- **Región:** `vercel.json` fija `pdx1` (Portland), junto al pooler de Supabase en `us-west-2`.
+- **Prisma:** se quitó `compilerBuild = "small"`, que solo servía para el límite de tamaño del Worker.
+- **Dependencia nueva:** `@vercel/functions@3.11.1`, publicada el mismo día. Se eligió esa versión porque las anteriores arrastraban `zod < 4.6.6`, con un aviso de seguridad alto (GHSA-mrhx-c7xc-m3w5).
+- **Se eliminó:** `wrangler.jsonc`, `open-next.config.ts`, `cloudflare-env.d.ts`, `.dev.vars.example` y las dependencias `@opennextjs/cloudflare` y `wrangler`. El Worker `camiloshop` y el Hyperdrive `camiloshop-db` siguen existiendo en la cuenta de Cloudflare hasta que se borren a mano.

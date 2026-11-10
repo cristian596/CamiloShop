@@ -5,14 +5,9 @@
 // - Catalog copy is bilingual through *Es / *En columns (the store has two fixed locales).
 // - Row Level Security, CHECK constraints and extensions live in hand-written SQL inside
 //   the migrations, because Prisma cannot express them (see docs/decisions.md).
-//
-// OpenNext patches the generated client for workerd, which only works with the
-// default output location of `prisma-client-js` (see docs/decisions.md).
 
 generator client {
-  provider      = "prisma-client-js"
-  // Smaller WASM query compiler: keeps the Worker under the Free plan limit.
-  compilerBuild = "small"
+  provider = "prisma-client-js"
 }
 
 datasource db {

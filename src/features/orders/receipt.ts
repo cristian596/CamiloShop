@@ -2,7 +2,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
 import type { Locale } from "@/i18n/routing";
 
 /**
- * Purchase receipt as PDF, built with pdf-lib (pure JS, runs on Workers).
+ * Purchase receipt as PDF, built with pdf-lib (pure JS, no native dependencies).
  * It is explicitly NOT a DIAN electronic invoice.
  */
 

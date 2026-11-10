@@ -1,7 +1,5 @@
 .next
-.open-next
-.wrangler
 node_modules
 src/generated
-cloudflare-env.d.ts
 package-lock.json
+.vercel

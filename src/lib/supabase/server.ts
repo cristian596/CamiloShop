@@ -20,7 +20,7 @@ export function isSupabaseConfigured() {
 
 /**
  * Per-request Supabase client bound to the auth cookies. Never share it between
- * requests: on Workers a module-level client would leak sessions across users.
+ * requests: on a shared server instance a module-level client would leak sessions across users.
  */
 export async function createClient() {
   const { url, anonKey } = requireSupabaseConfig();

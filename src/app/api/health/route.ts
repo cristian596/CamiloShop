@@ -1,17 +1,14 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-/** Liveness check used by the keep-alive workflow and the phase 1 infrastructure spike. */
+/** Liveness check used by the keep-alive workflow (it also keeps Supabase awake). */
 export async function GET() {
   const startedAt = Date.now();
 
   try {
-    const db = getDb();
-    await db.$queryRaw`SELECT 1`;
-    getCloudflareContext().ctx.waitUntil(db.$disconnect());
+    await getDb().$queryRaw`SELECT 1`;
 
     return NextResponse.json(
       { status: "ok", db: "ok", latencyMs: Date.now() - startedAt },

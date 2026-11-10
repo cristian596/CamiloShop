@@ -1,16 +1,17 @@
 import "server-only";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { after } from "next/server";
 
 /**
- * Runs work after the response is sent (emails, cleanup). On Workers the promise
- * must be handed to waitUntil or the runtime may cancel it. Errors are logged,
- * never thrown: background work must not affect the user's request.
+ * Runs work after the response is sent (emails, cleanup). `after` keeps the
+ * function alive until the promise settles (on Vercel it maps to waitUntil).
+ * Errors are logged, never thrown: background work must not affect the user's
+ * request.
  */
 export function runInBackground(label: string, work: Promise<unknown>) {
   const guarded = work.catch((error: unknown) => console.error(`[background] ${label}`, error));
   try {
-    getCloudflareContext().ctx.waitUntil(guarded);
+    after(guarded);
   } catch {
-    // No Cloudflare context (e.g. unit tests): the promise still runs on its own.
+    // Outside a request (e.g. unit tests): the promise still runs on its own.
   }
 }

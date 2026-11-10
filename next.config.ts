@@ -1,4 +1,3 @@
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
@@ -21,14 +20,9 @@ const nextConfig: NextConfig = {
     loader: "custom",
     loaderFile: "./src/lib/image-loader.ts",
   },
-  // Lets OpenNext patch and bundle the Prisma client for workerd (see OpenNext DB how-to).
-  serverExternalPackages: ["@prisma/client", ".prisma/client"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
 };
 
 export default withNextIntl(nextConfig);
-
-// Exposes Cloudflare bindings (e.g. HYPERDRIVE) to `next dev` via getCloudflareContext().
-initOpenNextCloudflareForDev();

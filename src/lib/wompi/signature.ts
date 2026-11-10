@@ -1,6 +1,6 @@
 /**
  * Wompi integrity signature and event checksum (docs.wompi.co, "Widget & Checkout
- * Web" and "Eventos"). Web Crypto only, so it runs on Workers and in Node tests.
+ * Web" and "Eventos"). Web Crypto only, so the same code runs on the server and in tests.
  */
 
 async function sha256Hex(input: string): Promise<string> {

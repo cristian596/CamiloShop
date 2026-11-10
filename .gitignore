@@ -7,9 +7,8 @@
 next-env.d.ts
 *.tsbuildinfo
 
-# cloudflare / opennext
-/.open-next/
-/.wrangler/
+# vercel
+/.vercel/
 
 # prisma generated client
 /src/generated/
@@ -30,3 +29,6 @@ next-env.d.ts
 .DS_Store
 *.pem
 npm-debug.log*
+
+.vercel
+.env*
