@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Inter, Sora } from "next/font/google";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { routing } from "@/i18n/routing";
@@ -12,6 +13,8 @@ import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { Providers } from "@/components/layout/providers";
 import { getStoreSettings } from "@/features/catalog/queries";
+import { CONSENT_COOKIE, parseConsent } from "@/features/consent/consent";
+import { ConsentManager } from "@/features/consent/consent-manager";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const sora = Sora({ subsets: ["latin"], variable: "--font-sora", display: "swap" });
@@ -51,7 +54,13 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
 
-  const [t, settings] = await Promise.all([getTranslations("Common"), getStoreSettings()]);
+  const [t, settings, cookieStore] = await Promise.all([
+    getTranslations("Common"),
+    getStoreSettings(),
+    cookies(),
+  ]);
+  // Read on the server so the banner never flashes for visitors who already chose.
+  const consent = parseConsent(cookieStore.get(CONSENT_COOKIE)?.value);
 
   return (
     <html
@@ -81,6 +90,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
               {children}
             </main>
             <Footer />
+            <ConsentManager
+              initialDecision={consent}
+              measurementId={publicEnv.NEXT_PUBLIC_GA_MEASUREMENT_ID}
+            />
           </Providers>
         </NextIntlClientProvider>
       </body>

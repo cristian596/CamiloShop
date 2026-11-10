@@ -2,6 +2,8 @@ import { getTranslations } from "next-intl/server";
 import { ROOT_CATEGORIES, categoryHref } from "@/config/categories";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
+import { publicEnv } from "@/lib/env";
+import { CookieSettingsButton } from "@/features/consent/consent-manager";
 import { Container } from "@/components/ui/container";
 import { focusRing } from "@/components/ui/styles";
 import { Logo } from "./logo";
@@ -54,6 +56,11 @@ export async function Footer() {
                 {t("returns")}
               </Link>
             </li>
+            {publicEnv.NEXT_PUBLIC_GA_MEASUREMENT_ID ? (
+              <li>
+                <CookieSettingsButton className={cn(linkClass, "text-left")} />
+              </li>
+            ) : null}
           </ul>
         </nav>
         <p className="text-sm text-muted sm:col-span-2 lg:col-span-1">

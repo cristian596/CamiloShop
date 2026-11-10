@@ -52,8 +52,11 @@ describe.skipIf(!connectionString || !demoEmail)(
 
     beforeAll(async () => {
       userId = (await db.profile.findUniqueOrThrow({ where: { email: demoEmail } })).id;
+      // A second customer of its own: a fresh database (CI) only has the demo user.
       otherUserId = (
-        await db.profile.findFirstOrThrow({ where: { id: { not: userId } }, select: { id: true } })
+        await db.profile.create({
+          data: { id: crypto.randomUUID(), email: `it-review-${runId.toLowerCase()}@example.com` },
+        })
       ).id;
       const bought = await makeProduct("b");
       const notBought = await makeProduct("n");
@@ -93,7 +96,10 @@ describe.skipIf(!connectionString || !demoEmail)(
 
     afterAll(async () => {
       await db.order.deleteMany({ where: { number: `IT-REV-${runId}` } });
-      await db.product.deleteMany({ where: { id: { in: [boughtId, notBoughtId] } } });
+      await db.product.deleteMany({
+        where: { id: { in: [boughtId, notBoughtId].filter(Boolean) } },
+      });
+      if (otherUserId) await db.profile.deleteMany({ where: { id: otherUserId } });
       await db.$disconnect();
     });
 

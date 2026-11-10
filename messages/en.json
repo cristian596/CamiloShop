@@ -872,5 +872,19 @@
       "forbidden": "Only an admin can answer.",
       "generic": "We could not send it. Please try again."
     }
+  },
+  "Consent": {
+    "title": "We use cookies",
+    "text": "Necessary cookies keep your session, cart and preferences. With your permission we also use Google Analytics to understand how the store is used; nothing is sent to Google until you accept. More details in the <link>Data Processing Policy</link>.",
+    "settingsTitle": "Cookie preferences",
+    "necessary": "Necessary (always on)",
+    "necessaryHint": "Session, cart, language, currency and theme. The store does not work without them.",
+    "analytics": "Analytics (Google Analytics 4)",
+    "analyticsHint": "Pages visited and store usage, in aggregate. Never for advertising.",
+    "accept": "Accept",
+    "reject": "Reject",
+    "configure": "Customize",
+    "save": "Save preferences",
+    "reopen": "Cookie preferences"
   }
 }

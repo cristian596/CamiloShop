@@ -872,5 +872,19 @@
       "forbidden": "Solo un administrador puede responder.",
       "generic": "No pudimos enviarla. Intenta de nuevo."
     }
+  },
+  "Consent": {
+    "title": "Usamos cookies",
+    "text": "Las necesarias mantienen tu sesión, el carrito y tus preferencias. Con tu permiso también usamos Google Analytics para entender cómo se usa la tienda; no enviamos nada a Google hasta que aceptes. Más detalles en la <link>Política de tratamiento de datos</link>.",
+    "settingsTitle": "Preferencias de cookies",
+    "necessary": "Necesarias (siempre activas)",
+    "necessaryHint": "Sesión, carrito, idioma, moneda y tema. Sin ellas la tienda no funciona.",
+    "analytics": "Analítica (Google Analytics 4)",
+    "analyticsHint": "Páginas visitadas y uso de la tienda, de forma agregada. Nunca para publicidad.",
+    "accept": "Aceptar",
+    "reject": "Rechazar",
+    "configure": "Configurar",
+    "save": "Guardar preferencias",
+    "reopen": "Preferencias de cookies"
   }
 }

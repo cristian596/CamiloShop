@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, tests, build and E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Everything runs against a throwaway local Supabase: no real secrets here.
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: G-TEST00000
+      NEXT_TELEMETRY_DISABLED: "1"
+      REQUIRE_EMAIL_VERIFICATION: "false"
+      RATE_LIMIT_SALT: ci-only-salt-not-a-real-secret
+      DEMO_USER_EMAIL: demo.camiloshop@example.com
+      DEMO_USER_PASSWORD: ci-demo-password-123
+      PAYMENT_GATEWAY: simulated
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (also generates the Prisma client)
+        run: npm ci
+
+      - name: Format, lint and types
+        run: |
+          npm run format:check
+          npm run lint
+          npm run typecheck
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+
+      - name: Start local Supabase (Postgres, Auth, Storage, API)
+        run: supabase start -x studio,realtime,edge-runtime,logflare,vector,imgproxy,mailpit,postgres-meta,supavisor
+
+      - name: Point the app at it
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY|DB_URL)=')"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "DATABASE_URL=$DB_URL"
+            echo "DIRECT_URL=$DB_URL"
+          } >> "$GITHUB_ENV"
+
+      - name: Migrate and seed
+        run: |
+          npm run db:migrate
+          npm run db:seed
+
+      - name: Unit and integration tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests (axe, checkout, cookie consent)
+        run: npm run test:e2e
+        env:
+          CI: "true"
+
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

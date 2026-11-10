@@ -2,7 +2,7 @@
 
 E-commerce de portafolio con estilo lujoso y urbano: tecnología, cosméticos y ropa. Construido con Next.js 16 (App Router), TypeScript estricto, Tailwind CSS v4, Supabase, Prisma y Vercel.
 
-> **Estado:** fase 7a de 7: catálogo, cuentas, carrito, checkout, pagos con tarjeta y PSE (integración Wompi + pasarela simulada para la demo), contra entrega, pedidos, comprobante PDF, panel de administración, reseñas, preguntas y respuestas, y SEO. Analítica, E2E y CI llegan en la fase 7b.
+> **Estado:** las 7 fases están completas. Hay catálogo, cuentas, carrito, checkout, pagos con tarjeta y PSE (integración Wompi más una pasarela simulada para la demo), contra entrega, pedidos, comprobante PDF y panel de administración. También reseñas, preguntas y respuestas, SEO, analítica con consentimiento, tests E2E y CI.
 
 ## Probar la tienda como visitante
 
@@ -10,7 +10,7 @@ En `/es/login` pulsa **"Entrar como demo"**: inicia sesión con una cuenta de cl
 
 Para probar una compra: agrega productos al carrito, ve a pagar, aplica el cupón `CLAUDE10` (10 %) o `GEMINI5` (5 %), elige **pago contra entrega** y confirma. El pedido queda **pendiente**; puedes descargar el comprobante en PDF o cancelarlo desde _Mi cuenta → Pedidos_. Los pedidos pendientes de la cuenta demo se cancelan solos cada día.
 
-> Los pagos funcionarán en **modo sandbox**: no se cobra dinero real.
+> Los pagos con tarjeta y PSE usan una **pasarela simulada**: no se pide ningún dato de tarjeta ni se cobra dinero.
 
 ## Stack
 
@@ -21,10 +21,11 @@ Para probar una compra: agrega productos al carrito, ve a pagar, aplica el cupó
 | i18n           | next-intl: español (`/es`, principal) e inglés (`/en`)                              |
 | Estado global  | Zustand (carrito, moneda y vistos recientemente, guardados en el navegador)         |
 | Base de datos  | Supabase Postgres + Prisma 7 (`@prisma/adapter-pg`) vía el pooler de Supabase       |
-| Auth / Storage | Supabase Auth (correo y Google) y Storage (fase 6)                                  |
-| Emails         | API de Resend (bienvenida; pedidos en las fases 4 y 5)                              |
+| Auth / Storage | Supabase Auth (correo y Google) y Storage (imágenes de productos)                   |
+| Emails         | API de Resend (bienvenida, pedidos y cambios de estado)                             |
 | Despliegue     | Vercel (plan Hobby, Fluid compute)                                                  |
-| Tests          | Vitest (unitarios); Playwright y CI llegan en la fase 7b                            |
+| Analítica      | Google Analytics 4 con Consent Mode v2 (solo si el visitante acepta)                |
+| Tests y CI     | Vitest (unitarios e integración), Playwright + axe (E2E) y GitHub Actions           |
 
 Las decisiones técnicas (ORM, hosting, proxy, pagos) están en [docs/decisions.md](docs/decisions.md). El proyecto empezó en Cloudflare Workers y se migró a Vercel; el porqué también está ahí.
 
@@ -33,6 +34,7 @@ Las decisiones técnicas (ORM, hosting, proxy, pagos) están en [docs/decisions.
 - Node.js 22.12 o superior (probado con Node 24).
 - npm (viene con Node).
 - Proyecto de Supabase (base de datos y auth) y cuenta de Vercel (deploy).
+- Opcional: Docker Desktop, para correr una Supabase local igual a la de la CI.
 
 ## Puesta en marcha local
 
@@ -60,7 +62,8 @@ Abre http://localhost:3000; te redirige a `/es`.
 | `npm run build`      | Build de producción de Next.js (webpack; ver `docs/decisions.md`) |
 | `npm run lint`       | ESLint                                                            |
 | `npm run typecheck`  | TypeScript sin emitir archivos                                    |
-| `npm test`           | Tests unitarios con Vitest                                        |
+| `npm test`           | Tests unitarios y de integración con Vitest                       |
+| `npm run test:e2e`   | Tests E2E con Playwright (accesibilidad, compra y cookies)        |
 | `npm run format`     | Prettier (ordena las clases de Tailwind)                          |
 | `npm run db:migrate` | Aplica las migraciones pendientes (`prisma migrate deploy`)       |
 | `npm run db:seed`    | Carga o actualiza el catálogo de ejemplo (idempotente)            |
@@ -197,6 +200,34 @@ La migración de esta fase crea el bucket `product-images` (lectura pública; so
 - **`/sitemap.xml`:** se genera en cada petición con el catálogo activo, en los dos idiomas con sus alternativas, e incluye las imágenes de los productos. **`/robots.txt`:** bloquea `/api`, `/auth`, la cuenta, el admin, el carrito, el checkout y el login.
 - **JSON-LD:** `Product` con `Offer` (o `AggregateOffer` si las variantes cuestan distinto), disponibilidad, marca y, solo si hay reseñas reales, `aggregateRating` y hasta 5 `review`. También `BreadcrumbList` en productos y categorías, y `Organization` + `WebSite` con buscador en el inicio. Para validarlo, pega la URL de un producto desplegado en el [Rich Results Test](https://search.google.com/test/rich-results).
 
+## Analítica y cookies (fase 7b)
+
+- **Sin ID no hay analítica:** si `NEXT_PUBLIC_GA_MEASUREMENT_ID` está vacío, la tienda no usa cookies opcionales y no muestra el banner.
+- **Con ID:** un banner ofrece **Aceptar**, **Rechazar** (igual de visible y a un clic) y **Configurar**. La elección se guarda en la cookie `cs_consent` durante 6 meses. En el pie de página aparece "Preferencias de cookies" para cambiarla.
+- **Consent Mode v2, modo básico:** `gtag.js` no se pide hasta que el visitante acepta, así que antes del consentimiento Google no recibe ninguna petición (un test E2E lo comprueba). Al aceptar se concede solo `analytics_storage`; las señales de publicidad quedan siempre denegadas. Si después revoca, se borran las cookies `_ga` y la página se recarga sin GA.
+- **Configurarlo:** crea una propiedad GA4 en [analytics.google.com](https://analytics.google.com), copia el ID de medición (`G-…`) y ponlo en `NEXT_PUBLIC_GA_MEASUREMENT_ID`, tanto en `.env.local` como en Vercel. Luego vuelve a desplegar, porque es una variable pública que se fija al compilar.
+
+## Tests y CI (fase 7b)
+
+| Tipo        | Dónde               | Qué cubre                                                                                      |
+| ----------- | ------------------- | ---------------------------------------------------------------------------------------------- |
+| Unitarios   | `tests/unit`        | Precios e IVA, cupones, firmas de Wompi, permisos, esquemas, SEO, reglas de reseñas            |
+| Integración | `tests/integration` | Contra Postgres real: stock concurrente, pedidos, pagos, panel de administración, reseñas, RLS |
+| E2E         | `tests/e2e`         | Accesibilidad (axe, WCAG 2.1 AA), compra contra entrega completa y consentimiento de cookies   |
+
+- **En local:** los tests de integración usan la base de `DIRECT_URL`. Los E2E reutilizan `npm run dev` en el puerto 3000 y crean un pedido del cliente demo, que cancelan al final.
+- **Supabase local (Docker):** `supabase/config.toml` configura una Supabase igual a la de producción, con el hook de rol. El esquema lo crean las migraciones de Prisma:
+
+  ```bash
+  npx supabase@2.122.0 start -x studio,realtime,edge-runtime,logflare,vector,imgproxy,mailpit,postgres-meta,supavisor
+  ```
+
+  Con `npx supabase@2.122.0 status -o env` obtienes la URL, las llaves y la cadena de la base; ponlas en las variables y corre `npm run db:migrate` y `npm run db:seed`. Para apagarla: `npx supabase@2.122.0 stop`.
+
+- **`.github/workflows/ci.yml`** (en cada push a `main` y en cada PR): formato, ESLint y tipos; luego levanta una Supabase local, aplica las migraciones sobre una base vacía, corre el seed, los tests unitarios y de integración, el build y Playwright. Si algo falla, sube el reporte de Playwright. No usa ningún secreto real.
+- **`.github/workflows/keepalive.yml`:** cada 3 días llama a `/api/health` para que Supabase Free no pause el proyecto. Configúralo en GitHub, en _Settings → Secrets and variables → Actions_: crea el secreto `HEALTHCHECK_URL` con el valor `https://<tu-proyecto>.vercel.app/api/health`. Para probarlo, ve a _Actions → Keepalive → Run workflow_. GitHub desactiva los workflows programados tras 60 días sin commits; si pasa, reactívalo desde la pestaña _Actions_.
+- **Lighthouse** (producción, 10 de noviembre de 2026): 100 en Accesibilidad, Buenas prácticas y SEO, en el inicio y en una ficha de producto.
+
 ## Diseño
 
 - Paleta: fondo `#0b0f19`, violeta `#7c3aed` (botones y cabeceras), cyan `#22d3ee` y rosa `#f472b6` (acentos), claro `#f8fafc`.
@@ -215,10 +246,13 @@ src/
   config/           categorías, catálogo, departamentos, versión legal
   features/         código por dominio (catalog, auth, account, legal…)
   i18n/             configuración de next-intl
-  lib/              utilidades (db, env, auth, rate-limit, email, supabase)
+  lib/              utilidades (db, env, auth, rate-limit, email, seo, supabase, wompi)
   stores/           stores de Zustand
 messages/           textos en es.json y en.json
-prisma/             esquema de base de datos
+prisma/             esquema, migraciones y seed
+supabase/           configuración de la Supabase local (CI y desarrollo)
+tests/              unit/, integration/ y e2e/
+.github/workflows/  CI y keepalive
 docs/               decisiones técnicas
 ```
 
@@ -228,8 +262,8 @@ docs/               decisiones técnicas
 - **Numeración de pedidos:** sale de una secuencia de Postgres; un pedido que falla dentro de la transacción consume su número, así que puede haber saltos (CS-2026-000016, CS-2026-000020…).
 - **Páginas legales:** términos, tratamiento de datos (Ley 1581) y devoluciones son **plantillas** y deben revisarlas un abogado antes de usarlas en un comercio real.
 - **Sesión de un usuario desactivado:** se le cierran todas las sesiones y no puede volver a entrar, pero el token que ya tenía sigue valiendo hasta que vence (una hora como máximo). El panel de administración no se ve afectado porque siempre consulta la base de datos.
-- **Supabase Free pausa el proyecto** tras unos días sin actividad. Para reactivarlo: entra a supabase.com, abre el proyecto y pulsa _Restore project_. En la fase 7b se agrega un workflow que hace ping a `/api/health` cada 3 días para evitarlo.
+- **Supabase Free pausa el proyecto** tras unos días sin actividad. El workflow `keepalive.yml` lo evita. Si aun así se pausa, entra a supabase.com, abre el proyecto y pulsa _Restore project_.
 
 ## Aviso
 
-Proyecto de portafolio. Las marcas de productos son ficticias, los pagos funcionan en sandbox y los comprobantes generados **no son facturas electrónicas DIAN**.
+Proyecto de portafolio. Las marcas de productos son ficticias, los pagos son simulados (la integración con Wompi está lista para su sandbox) y los comprobantes generados **no son facturas electrónicas DIAN**.
