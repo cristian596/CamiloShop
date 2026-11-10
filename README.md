@@ -2,7 +2,7 @@
 
 E-commerce de portafolio con estilo lujoso y urbano: tecnología, cosméticos y ropa. Construido con Next.js 16 (App Router), TypeScript estricto, Tailwind CSS v4, Supabase, Prisma y Vercel.
 
-> **Estado:** fase 5 de 7 (catálogo, cuentas, carrito, checkout, pagos con tarjeta y PSE (integración Wompi + pasarela simulada para la demo), contra entrega, pedidos y comprobante PDF). El panel de administración llega en la fase 6.
+> **Estado:** fase 6 de 7: catálogo, cuentas, carrito, checkout, pagos con tarjeta y PSE (integración Wompi + pasarela simulada para la demo), contra entrega, pedidos, comprobante PDF y panel de administración. Reseñas, preguntas y SEO llegan en la fase 7a.
 
 ## Probar la tienda como visitante
 
@@ -125,7 +125,7 @@ Abre http://localhost:3000; te redirige a `/es`.
 
 1. **Variables** en `.env.local` (ver `.env.example`): `REQUIRE_EMAIL_VERIFICATION`, `RATE_LIMIT_SALT`, `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD`, `RESEND_API_KEY` y `EMAIL_FROM`. En producción, las mismas variables van en Vercel (ver _Desplegar en Vercel_).
 2. **Migraciones y usuario demo:** `npm run db:migrate` crea el trigger que genera el perfil de cada usuario nuevo y el hook de rol; `npm run db:seed` crea (o restablece) la cuenta demo con una dirección.
-3. **Supabase → Authentication → URL Configuration:** _Site URL_ = la URL pública en Vercel. En _Redirect URLs_ agrega `http://localhost:3000/auth/callback` y `https://<tu-proyecto>.vercel.app/auth/callback`.
+3. **Supabase → Authentication → URL Configuration:** _Site URL_ = la URL pública en Vercel. En _Redirect URLs_ agrega `http://localhost:3000/**` y `https://<tu-proyecto>.vercel.app/**`. Si falta la de localhost, Supabase devuelve el inicio de sesión con Google a la _Site URL_ (producción).
 4. **Supabase → Authentication → Hooks:** activa _Customize Access Token (JWT) Claims_ y elige la función `public.custom_access_token_hook`. Agrega `app_metadata.user_role` (`admin` o `customer`) al token.
 5. **Google:** en Google Cloud Console crea un cliente OAuth (tipo _Web application_) con la URI de redirección que muestra Supabase en _Authentication → Sign In / Providers → Google_ (`https://<ref>.supabase.co/auth/v1/callback`). Pega el Client ID y el Secret en Supabase. Luego, en _OAuth consent screen_, pulsa **Publish app** para pasarla de _Testing_ a _In production_; si no, solo entran las cuentas de prueba.
 6. **Resend:** crea una API key y ponla en `RESEND_API_KEY`. Para que Supabase envíe la verificación y la recuperación por Resend, en _Authentication → Emails → SMTP Settings_ usa host `smtp.resend.com`, puerto `465`, usuario `resend`, contraseña = la API key y remitente `onboarding@resend.dev`.
@@ -137,7 +137,7 @@ Abre http://localhost:3000; te redirige a `/es`.
 
    Cierra sesión y vuelve a entrar para que el token traiga el rol nuevo; luego abre `/es/admin`.
 
-**Rol en el JWT:** el claim `user_role` solo se actualiza cuando el token se renueva (cada hora por defecto) o al volver a iniciar sesión. El proxy (`src/proxy.ts`) usa ese claim solo para redirigir; la autorización real (`requireAdmin()`) siempre lee `Profile.role` en la base de datos, así que un rol revocado deja de servir de inmediato aunque el token diga otra cosa. En la fase 6, cambiar un rol desde el admin también cerrará las sesiones de ese usuario.
+**Rol en el JWT:** el claim `user_role` solo se actualiza cuando el token se renueva (cada hora por defecto) o al volver a iniciar sesión. El proxy (`src/proxy.ts`) usa ese claim solo para redirigir; la autorización real (`requireAdmin()`) siempre lee `Profile.role` en la base de datos, así que un rol revocado deja de servir de inmediato aunque el token diga otra cosa. Cambiar un rol desde el admin además cierra todas las sesiones de ese usuario.
 
 **Verificación de correo:** con `REQUIRE_EMAIL_VERIFICATION=false` el registro crea la cuenta ya confirmada (Admin API de Supabase) e inicia sesión de una vez; ese camino tiene un límite de 5 registros por hora por IP. Con `true`, Supabase envía un enlace de confirmación que vuelve a `/auth/callback`.
 
@@ -168,7 +168,20 @@ Si `PAYMENT_GATEWAY` está vacío, se usa Wompi cuando las cuatro llaves existen
 - **Stock seguro ante compras simultáneas:** al crear el pedido, cada variante se descuenta con un `UPDATE ... WHERE stock >= cantidad` dentro de una transacción; si no alcanza, todo se revierte. Un test con 6 compras simultáneas sobre la última unidad deja exactamente un pedido.
 - **Vencimiento:** pg_cron cancela cada 5 minutos los pedidos pendientes vencidos (`ORDER_EXPIRY_MINUTES`, 30; contra entrega `COD_ORDER_EXPIRY_MINUTES`, 2880 = 48 h). Cancelar, desde el cliente, el cron o el admin, devuelve el stock y el cupón una sola vez.
 - **Comprobante:** `/api/invoice/<número>` genera un PDF para el dueño del pedido o un admin. **No es una factura electrónica DIAN.**
-- **Contra entrega:** el pedido queda pendiente hasta que el admin lo confirme como pagado (fase 6).
+- **Contra entrega:** el pedido queda pendiente hasta que el admin lo confirme como pagado.
+
+## Panel de administración (fase 6)
+
+En `/es/admin`, solo para usuarios con rol `ADMIN` activo (se lee de la base de datos en cada página y en cada acción). Un cliente que lo abre es redirigido; sin sesión, va al login.
+
+- **Resumen:** ventas, pedidos pagados y ticket promedio de los últimos 30 días (hora de Colombia), pedidos por atender, ventas por día y pedidos por estado (Recharts, cargado solo en esta página) y los más vendidos. Arriba aparecen los **pagos que requieren reembolso**: pagos aprobados en pedidos que terminaron cancelados, con el botón "Marcar como revisado".
+- **Pedidos:** búsqueda por número, correo o nombre, filtros por estado y método, y detalle con cliente, dirección, productos, intentos de pago e historial. Cambios permitidos: confirmar contra entrega (pasa a pagado), enviar, entregar y cancelar. Cada cambio guarda una nota opcional y le envía un correo al cliente. **Un pedido con tarjeta o PSE solo pasa a pagado por la pasarela.** Si dos admins actúan sobre el mismo pedido, gana uno y el otro ve "el pedido cambió".
+- **Productos:** crear y editar en español e inglés, variantes (SKU, talla, color, precio propio, stock) e imágenes en Supabase Storage. Las imágenes son JPG, PNG, WebP o AVIF de hasta 2 MB, máximo 8 por producto, y el tipo se verifica por los bytes del archivo, no por su nombre. Una variante que ya se vendió no se puede quitar, y un producto con pedidos solo se oculta.
+- **Categorías:** renombrar y ordenar; crear y eliminar subcategorías vacías. Las categorías principales mantienen su slug porque el menú las enlaza.
+- **Cupones:** porcentaje (1–90 %) o valor fijo, fechas en hora de Colombia, usos máximos y compra mínima. Un cupón usado no se puede eliminar.
+- **Usuarios:** cambiar rol y desactivar o reactivar. Ambas acciones cierran todas las sesiones de la persona y desactivar además la bloquea en Supabase Auth. No puedes cambiar tu propio rol, y **la cuenta demo nunca puede volverse admin** (su contraseña es pública).
+
+La migración de esta fase crea el bucket `product-images` (lectura pública; solo el servidor escribe).
 
 ## Diseño
 
@@ -200,6 +213,7 @@ docs/               decisiones técnicas
 - **Emails:** sin dominio propio, Resend envía con `onboarding@resend.dev` y **solo entrega al correo del dueño de la cuenta**. Por eso, el camino principal para visitantes es el botón **"Entrar como demo"**. Un envío fallido se registra en los logs y nunca interrumpe el registro ni los pedidos. Verificar un dominio propio queda como mejora futura.
 - **Numeración de pedidos:** sale de una secuencia de Postgres; un pedido que falla dentro de la transacción consume su número, así que puede haber saltos (CS-2026-000016, CS-2026-000020…).
 - **Páginas legales:** términos, tratamiento de datos (Ley 1581) y devoluciones son **plantillas** y deben revisarlas un abogado antes de usarlas en un comercio real.
+- **Sesión de un usuario desactivado:** se le cierran todas las sesiones y no puede volver a entrar, pero el token que ya tenía sigue valiendo hasta que vence (una hora como máximo). El panel de administración no se ve afectado porque siempre consulta la base de datos.
 - **Supabase Free pausa el proyecto** tras unos días sin actividad. Para reactivarlo: entra a supabase.com, abre el proyecto y pulsa _Restore project_. En la fase 7b se agrega un workflow que hace ping a `/api/health` cada 3 días para evitarlo.
 
 ## Aviso

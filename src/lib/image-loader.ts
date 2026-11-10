@@ -3,10 +3,10 @@
 import type { ImageLoaderProps } from "next/image";
 
 /**
- * next/image optimization on Cloudflare requires the paid Images product, so the
- * resizing is delegated to the image CDN instead. Unsplash (imgix) and Pexels both
- * accept width/quality/format params. Other sources (e.g. Supabase Storage uploads,
- * compressed on upload) are served as-is.
+ * Resizing is delegated to the image CDNs instead of Vercel Image Optimization,
+ * whose free quota is small: Unsplash (imgix) and Pexels both accept
+ * width/quality/format params. Other sources (Supabase Storage uploads, capped
+ * at 2 MB by the admin) are served as-is.
  */
 export default function imageLoader({ src, width, quality }: ImageLoaderProps): string {
   const q = String(quality ?? 75);

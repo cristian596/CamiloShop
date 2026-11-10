@@ -35,8 +35,8 @@ const serverSchema = z.object({
 export type ServerEnv = z.infer<typeof serverSchema>;
 
 /**
- * Server-only settings, read lazily: on Cloudflare, secrets reach process.env per
- * request (nodejs_compat), and `next build` must not require them.
+ * Server-only settings, read lazily so `next build` does not require the secrets
+ * (they only exist at runtime on Vercel).
  */
 export function getServerEnv(): ServerEnv {
   return serverSchema.parse({

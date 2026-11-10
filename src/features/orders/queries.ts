@@ -86,7 +86,7 @@ export type OrderDetail = NonNullable<Awaited<ReturnType<typeof getOrderForViewe
 export async function isAdminUser(userId: string): Promise<boolean> {
   const profile = await getDb().profile.findUnique({
     where: { id: userId },
-    select: { role: true },
+    select: { role: true, isActive: true },
   });
-  return profile?.role === "ADMIN";
+  return profile?.role === "ADMIN" && profile.isActive;
 }

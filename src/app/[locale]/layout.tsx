@@ -21,8 +21,8 @@ interface LocaleLayoutProps {
   params: Promise<{ locale: string }>;
 }
 
-// Every page reads live catalog data (prices, stock, USD rate), and no incremental
-// cache is configured on Cloudflare yet, so pages render per request.
+// Every page reads live catalog data (prices, stock, USD rate) that the admin can
+// change at any time, so pages render per request instead of being cached.
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: LocaleLayoutProps): Promise<Metadata> {

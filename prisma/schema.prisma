@@ -57,20 +57,20 @@ enum CouponType {
 
 /// One row per Supabase auth user; `id` equals auth.users.id (FK added in phase 3).
 model Profile {
-  id        String   @id @db.Uuid
-  email     String   @unique
-  fullName  String?
-  phone     String?
-  role      Role     @default(CUSTOMER)
-  locale    String   @default("es")
-  isActive  Boolean  @default(true)
+  id                 String    @id @db.Uuid
+  email              String    @unique
+  fullName           String?
+  phone              String?
+  role               Role      @default(CUSTOMER)
+  locale             String    @default("es")
+  isActive           Boolean   @default(true)
   /// Consent to the data processing policy (Ley 1581), recorded at sign-up.
   privacyAcceptedAt  DateTime?
   privacyVersion     String?
   /// Set once the welcome email has been attempted, so it is never sent twice.
   welcomeEmailSentAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   addresses   Address[]
   orders      Order[]
@@ -287,6 +287,9 @@ model Payment {
   status        PaymentStatus   @default(PENDING)
   amountInCents BigInt
   raw           Json?
+  /// Set by an admin after handling an approval that arrived for a cancelled
+  /// order (manual refund). Until then the dashboard keeps alerting about it.
+  reviewedAt    DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 

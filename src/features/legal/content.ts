@@ -159,7 +159,7 @@ export const LEGAL_CONTENT: Record<LegalPage, Record<Locale, LegalSection[]>> = 
         id: "processors",
         title: "6. Encargados y transferencias",
         paragraphs: [
-          "Para operar el sitio usamos proveedores que tratan datos por nuestra cuenta: Supabase (base de datos y autenticación), Cloudflare (alojamiento), Resend (correos), Wompi (pagos) y Google (inicio de sesión y, si lo aceptas, analítica). Algunos almacenan datos fuera de Colombia.",
+          "Para operar el sitio usamos proveedores que tratan datos por nuestra cuenta: Supabase (base de datos y autenticación), Vercel (alojamiento), Resend (correos), Wompi (pagos) y Google (inicio de sesión y, si lo aceptas, analítica). Algunos almacenan datos fuera de Colombia.",
         ],
       },
       {
@@ -212,7 +212,7 @@ export const LEGAL_CONTENT: Record<LegalPage, Record<Locale, LegalSection[]>> = 
         id: "processors",
         title: "6. Processors and transfers",
         paragraphs: [
-          "To run the site we use providers that process data on our behalf: Supabase (database and authentication), Cloudflare (hosting), Resend (email), Wompi (payments) and Google (sign-in and, if you accept it, analytics). Some store data outside Colombia.",
+          "To run the site we use providers that process data on our behalf: Supabase (database and authentication), Vercel (hosting), Resend (email), Wompi (payments) and Google (sign-in and, if you accept it, analytics). Some store data outside Colombia.",
         ],
       },
       {

@@ -15,6 +15,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      // Product images are capped at 2 MB (see src/features/admin/image-file.ts);
+      // the rest is multipart overhead. Vercel functions accept up to 4.5 MB.
+      bodySizeLimit: "3mb",
+    },
+  },
   images: {
     // Resizing happens on the image CDN (see src/lib/image-loader.ts).
     loader: "custom",

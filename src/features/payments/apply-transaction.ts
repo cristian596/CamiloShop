@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import type { WompiTransaction } from "@/lib/wompi/client";
+import { addOrderToSoldCount } from "@/features/orders/sold-count";
 
 /*
  * Applies a Wompi transaction (always as read from the Wompi API) to our
@@ -124,14 +125,7 @@ export async function applyWompiTransaction(
           note: `wompi:${transaction.id}`,
         },
       });
-      await tx.$executeRaw`
-        UPDATE "Product" p SET "soldCount" = p."soldCount" + sold.quantity
-        FROM (
-          SELECT "productId", sum(quantity)::int AS quantity
-          FROM "OrderItem" WHERE "orderId" = ${payment.orderId}::uuid
-          GROUP BY "productId"
-        ) sold
-        WHERE p.id = sold."productId"`;
+      await addOrderToSoldCount(tx, payment.orderId);
       return { outcome: "paid", orderId: payment.orderId };
     }
 
@@ -141,7 +135,8 @@ export async function applyWompiTransaction(
     });
     if (order?.status === "CANCELLED") {
       // Money arrived for a cancelled order (e.g. an old attempt approved late).
-      // Nothing is reserved anymore, so the admin must refund it manually (phase 6).
+      // Nothing is reserved anymore, so the admin must refund it manually; the
+      // dashboard lists it until an admin marks it as reviewed.
       console.warn("[payments] approved payment on a cancelled order", transaction.reference);
       return { outcome: "approvedAfterCancel", orderId: payment.orderId };
     }
