@@ -1,9 +1,12 @@
 import { ArrowRight, RotateCcw, ShieldCheck, Truck } from "lucide-react";
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ROOT_CATEGORIES, categoryHref } from "@/config/categories";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
+import { localizedAlternates, organizationJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
 import { buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -11,6 +14,22 @@ import { focusRing } from "@/components/ui/styles";
 import { ProductGrid } from "@/features/catalog/product-grid";
 import { getFeaturedProducts } from "@/features/catalog/queries";
 import { RecentlyViewed } from "@/features/catalog/recently-viewed";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale: locale as Locale, namespace: "Metadata" });
+  return {
+    // The home page uses the full brand title, not the "%s | CamiloShop" template.
+    title: { absolute: t("title") },
+    description: t("description"),
+    alternates: localizedAlternates(locale as Locale, "/"),
+    openGraph: { type: "website", siteName: "CamiloShop", url: `/${locale}` },
+  };
+}
 
 // Each module has a single dominant neon accent:
 // hero + featured → violet, categories + benefits → cyan, promo → pink.
@@ -20,6 +39,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   setRequestLocale(locale as Locale);
   const [t, featured] = await Promise.all([getTranslations("Home"), getFeaturedProducts(8)]);
   const tc = await getTranslations("Categories");
+  const tm = await getTranslations("Metadata");
 
   const benefits = [
     { icon: Truck, title: t("benefitShippingTitle"), text: t("benefitShippingText") },
@@ -29,6 +49,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   return (
     <>
+      <JsonLd data={organizationJsonLd(locale as Locale, tm("description"))} />
       <section
         aria-labelledby="hero-title"
         className="relative overflow-hidden border-b border-line"

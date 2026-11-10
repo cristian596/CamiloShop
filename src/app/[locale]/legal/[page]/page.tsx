@@ -4,6 +4,7 @@ import { getFormatter, getTranslations, setRequestLocale } from "next-intl/serve
 import { notFound } from "next/navigation";
 import { LEGAL_PAGES, LEGAL_VERSION, type LegalPage } from "@/config/legal";
 import type { Locale } from "@/i18n/routing";
+import { localizedAlternates } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 import { Container } from "@/components/ui/container";
 import { focusRing } from "@/components/ui/styles";
@@ -24,10 +25,7 @@ export async function generateMetadata({ params }: LegalPageProps): Promise<Meta
   const path = `/legal/${page}`;
   return {
     title: t(`titles.${page}`),
-    alternates: {
-      canonical: `/${locale}${path}`,
-      languages: { es: `/es${path}`, en: `/en${path}` },
-    },
+    alternates: localizedAlternates(locale as Locale, path),
   };
 }
 

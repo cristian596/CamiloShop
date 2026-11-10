@@ -2,7 +2,7 @@
 
 E-commerce de portafolio con estilo lujoso y urbano: tecnología, cosméticos y ropa. Construido con Next.js 16 (App Router), TypeScript estricto, Tailwind CSS v4, Supabase, Prisma y Vercel.
 
-> **Estado:** fase 6 de 7: catálogo, cuentas, carrito, checkout, pagos con tarjeta y PSE (integración Wompi + pasarela simulada para la demo), contra entrega, pedidos, comprobante PDF y panel de administración. Reseñas, preguntas y SEO llegan en la fase 7a.
+> **Estado:** fase 7a de 7: catálogo, cuentas, carrito, checkout, pagos con tarjeta y PSE (integración Wompi + pasarela simulada para la demo), contra entrega, pedidos, comprobante PDF, panel de administración, reseñas, preguntas y respuestas, y SEO. Analítica, E2E y CI llegan en la fase 7b.
 
 ## Probar la tienda como visitante
 
@@ -182,6 +182,20 @@ En `/es/admin`, solo para usuarios con rol `ADMIN` activo (se lee de la base de 
 - **Usuarios:** cambiar rol y desactivar o reactivar. Ambas acciones cierran todas las sesiones de la persona y desactivar además la bloquea en Supabase Auth. No puedes cambiar tu propio rol, y **la cuenta demo nunca puede volverse admin** (su contraseña es pública).
 
 La migración de esta fase crea el bucket `product-images` (lectura pública; solo el servidor escribe).
+
+## Reseñas y preguntas (fase 7a)
+
+- **Reseñas solo de compradores:** el formulario aparece únicamente a quien tiene un pedido **entregado** con ese producto, y el servidor lo vuelve a verificar. Cada cliente reseña un producto una sola vez y las reseñas se marcan como "Compra verificada". El promedio y el número de reseñas se recalculan en la misma transacción, con la fila del producto bloqueada para que dos reseñas simultáneas no dejen un promedio viejo. El autor puede borrar su reseña y un admin puede moderarla.
+- **Calificaciones reales:** el catálogo de ejemplo ya no trae calificaciones inventadas. Las estrellas, el filtro por valoración y el JSON-LD salen solo de reseñas reales, así que un producto sin reseñas no muestra estrellas.
+- **Preguntas:** cualquier cliente con sesión puede preguntar (máximo 5 por hora). Una pregunta se publica cuando la tienda la responde, y mientras tanto solo la ven su autor ("Esperando respuesta") y los admins. El admin responde desde la ficha del producto o desde _Panel → Preguntas_.
+- **Demo:** el cliente demo tiene un pedido entregado para probar las reseñas. El reinicio diario (pg_cron, 03:00 hora de Colombia) borra sus reseñas y preguntas y recalcula las calificaciones.
+
+## SEO (fase 7a)
+
+- **Metadatos:** título, descripción, `canonical` y `hreflang` (es, en y `x-default` → es) en el inicio, las categorías, los productos y las páginas legales. El checkout, la cuenta, el admin y la búsqueda son `noindex`.
+- **Open Graph:** imagen dinámica de marca por idioma (`[locale]/opengraph-image.tsx`); cada producto usa su propia foto.
+- **`/sitemap.xml`:** se genera en cada petición con el catálogo activo, en los dos idiomas con sus alternativas, e incluye las imágenes de los productos. **`/robots.txt`:** bloquea `/api`, `/auth`, la cuenta, el admin, el carrito, el checkout y el login.
+- **JSON-LD:** `Product` con `Offer` (o `AggregateOffer` si las variantes cuestan distinto), disponibilidad, marca y, solo si hay reseñas reales, `aggregateRating` y hasta 5 `review`. También `BreadcrumbList` en productos y categorías, y `Organization` + `WebSite` con buscador en el inicio. Para validarlo, pega la URL de un producto desplegado en el [Rich Results Test](https://search.google.com/test/rich-results).
 
 ## Diseño
 

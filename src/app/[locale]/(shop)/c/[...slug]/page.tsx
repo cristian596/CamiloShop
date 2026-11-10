@@ -7,7 +7,9 @@ import { PAGE_SIZE } from "@/config/catalog";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/cn";
+import { breadcrumbJsonLd, localizedAlternates } from "@/lib/seo";
 import { Breadcrumbs, type BreadcrumbItem } from "@/components/ui/breadcrumbs";
+import { JsonLd } from "@/components/seo/json-ld";
 import { buttonClasses } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { focusRing } from "@/components/ui/styles";
@@ -46,10 +48,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
     title: name,
     description: t("metaDescription", { category: name.toLowerCase() }),
     // Filtered and paginated variants all point to the clean category URL.
-    alternates: {
-      canonical: `/${locale}${path}`,
-      languages: { es: `/es${path}`, en: `/en${path}` },
-    },
+    alternates: localizedAlternates(locale as Locale, path),
   };
 }
 
@@ -89,6 +88,13 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   return (
     <Container className="py-8">
+      <JsonLd
+        data={breadcrumbJsonLd(locale, [
+          { name: "CamiloShop", path: "/" },
+          { name: context.root.name[locale], path: rootPath },
+          ...(context.child ? [{ name: context.child.name[locale], path: basePath }] : []),
+        ])}
+      />
       <Breadcrumbs items={breadcrumbs} className="mb-6" />
 
       <h1 className="mb-6 font-display text-3xl font-bold tracking-tight sm:text-4xl">

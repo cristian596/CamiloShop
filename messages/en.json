@@ -355,7 +355,8 @@
       "products": "Products",
       "categories": "Categories",
       "coupons": "Coupons",
-      "users": "Users"
+      "users": "Users",
+      "questions": "Questions"
     },
     "dashboard": {
       "title": "Overview",
@@ -621,6 +622,11 @@
       "forbidden": "You are not allowed to do this.",
       "notFound": "It does not exist or was already deleted.",
       "generic": "Something went wrong. Please try again."
+    },
+    "questions": {
+      "title": "Pending questions",
+      "count": "{count, plural, =0 {No questions to answer} one {# question to answer} other {# questions to answer}}",
+      "empty": "Every question has an answer."
     }
   },
   "Cart": {
@@ -806,5 +812,65 @@
     "unavailable": "This payment attempt is no longer available: it was already resolved, the order expired, or it is not yours.",
     "toOrders": "Go to my orders",
     "disclaimer": "Demo gateway: it asks for no card details, talks to no bank and moves no money. The real Wompi integration ships with the project and turns on with its keys."
+  },
+  "Reviews": {
+    "title": "Reviews",
+    "outOf5": "out of 5",
+    "summaryLabel": "{rating} out of 5 stars, {count, plural, one {# review} other {# reviews}}",
+    "count": "{count, plural, one {# review} other {# reviews}}",
+    "stars": "{count, plural, one {# star} other {# stars}}",
+    "starsShare": "{count, plural, one {# star} other {# stars}}: {reviews, plural, one {# review} other {# reviews}}",
+    "none": "No reviews yet. Only customers who received the product can write one.",
+    "write": "Write a review",
+    "signInToReview": "<link>Sign in</link> to review. Only customers who bought and received this product can.",
+    "onlyBuyers": "Only customers who bought this product and already received it can review it.",
+    "alreadyReviewed": "You already reviewed this product. Thank you!",
+    "anonymous": "Customer",
+    "verified": "Verified purchase",
+    "deleteMine": "Delete my review",
+    "deleteModerate": "Delete (moderation)",
+    "thanks": "Thank you! Your review is live.",
+    "yourRating": "Your rating",
+    "reviewTitle": "Title (optional)",
+    "body": "Your review",
+    "bodyHint": "At least {min} characters. Tell what you liked and what you didn't.",
+    "sending": "Sending…",
+    "submit": "Post review",
+    "errors": {
+      "rating": "Choose 1 to 5 stars.",
+      "tooShort": "Write at least {min} characters.",
+      "tooLong": "It is too long.",
+      "notEligible": "You can only review products from a delivered order.",
+      "alreadyReviewed": "You already reviewed this product.",
+      "rateLimited": "You sent too many reviews in a row. Please try later.",
+      "auth": "Sign in to review.",
+      "generic": "We could not post the review. Please try again."
+    }
+  },
+  "Questions": {
+    "title": "Questions and answers",
+    "signInToAsk": "<link>Sign in</link> to ask a question about this product.",
+    "none": "No answered questions yet.",
+    "anonymous": "Customer",
+    "pending": "Awaiting answer",
+    "deleteMine": "Delete my question",
+    "deleteModerate": "Delete (moderation)",
+    "storeAnswer": "Answer from CamiloShop",
+    "sent": "We got your question. It will be published once we answer it.",
+    "yourQuestion": "Your question",
+    "hint": "Questions are published once the store answers them.",
+    "sending": "Sending…",
+    "ask": "Ask",
+    "answered": "Answer published.",
+    "answerAsStore": "Answer as the store",
+    "answer": "Post answer",
+    "errors": {
+      "tooShort": "Write at least {min} characters.",
+      "tooLong": "It is too long.",
+      "rateLimited": "You asked too many questions in a row. Please try later.",
+      "auth": "Sign in to ask.",
+      "forbidden": "Only an admin can answer.",
+      "generic": "We could not send it. Please try again."
+    }
   }
 }

@@ -355,7 +355,8 @@
       "products": "Productos",
       "categories": "Categorías",
       "coupons": "Cupones",
-      "users": "Usuarios"
+      "users": "Usuarios",
+      "questions": "Preguntas"
     },
     "dashboard": {
       "title": "Resumen",
@@ -621,6 +622,11 @@
       "forbidden": "No tienes permiso para hacer esto.",
       "notFound": "No existe o ya fue eliminado.",
       "generic": "Algo salió mal. Intenta de nuevo."
+    },
+    "questions": {
+      "title": "Preguntas pendientes",
+      "count": "{count, plural, =0 {No hay preguntas por responder} one {# pregunta por responder} other {# preguntas por responder}}",
+      "empty": "Todas las preguntas tienen respuesta."
     }
   },
   "Cart": {
@@ -806,5 +812,65 @@
     "unavailable": "Este intento de pago ya no está disponible: ya se resolvió, el pedido venció o no te pertenece.",
     "toOrders": "Ir a mis pedidos",
     "disclaimer": "Pasarela de demostración: no pide datos de tarjeta, no se conecta a ningún banco y no mueve dinero. El código de la integración real con Wompi está en el proyecto y se activa con sus llaves."
+  },
+  "Reviews": {
+    "title": "Reseñas",
+    "outOf5": "de 5",
+    "summaryLabel": "{rating} de 5 estrellas, {count, plural, one {# reseña} other {# reseñas}}",
+    "count": "{count, plural, one {# reseña} other {# reseñas}}",
+    "stars": "{count, plural, one {# estrella} other {# estrellas}}",
+    "starsShare": "{count, plural, one {# estrella} other {# estrellas}}: {reviews, plural, one {# reseña} other {# reseñas}}",
+    "none": "Todavía no hay reseñas. Las escriben solo clientes que recibieron el producto.",
+    "write": "Escribe una reseña",
+    "signInToReview": "<link>Inicia sesión</link> para reseñar. Solo pueden hacerlo quienes compraron y recibieron este producto.",
+    "onlyBuyers": "Solo pueden reseñar quienes compraron este producto y ya lo recibieron.",
+    "alreadyReviewed": "Ya reseñaste este producto. ¡Gracias!",
+    "anonymous": "Cliente",
+    "verified": "Compra verificada",
+    "deleteMine": "Eliminar mi reseña",
+    "deleteModerate": "Eliminar (moderación)",
+    "thanks": "¡Gracias! Tu reseña ya está publicada.",
+    "yourRating": "Tu calificación",
+    "reviewTitle": "Título (opcional)",
+    "body": "Tu reseña",
+    "bodyHint": "Mínimo {min} caracteres. Cuenta qué te gustó y qué no.",
+    "sending": "Enviando…",
+    "submit": "Publicar reseña",
+    "errors": {
+      "rating": "Elige de 1 a 5 estrellas.",
+      "tooShort": "Escribe al menos {min} caracteres.",
+      "tooLong": "Es demasiado largo.",
+      "notEligible": "Solo puedes reseñar productos de un pedido entregado.",
+      "alreadyReviewed": "Ya reseñaste este producto.",
+      "rateLimited": "Enviaste demasiadas reseñas seguidas. Intenta más tarde.",
+      "auth": "Inicia sesión para reseñar.",
+      "generic": "No pudimos publicar la reseña. Intenta de nuevo."
+    }
+  },
+  "Questions": {
+    "title": "Preguntas y respuestas",
+    "signInToAsk": "<link>Inicia sesión</link> para hacer una pregunta sobre este producto.",
+    "none": "Todavía no hay preguntas respondidas.",
+    "anonymous": "Cliente",
+    "pending": "Esperando respuesta",
+    "deleteMine": "Eliminar mi pregunta",
+    "deleteModerate": "Eliminar (moderación)",
+    "storeAnswer": "Respuesta de CamiloShop",
+    "sent": "Recibimos tu pregunta. La verás publicada cuando la respondamos.",
+    "yourQuestion": "Tu pregunta",
+    "hint": "Las preguntas se publican cuando la tienda las responde.",
+    "sending": "Enviando…",
+    "ask": "Preguntar",
+    "answered": "Respuesta publicada.",
+    "answerAsStore": "Responder como tienda",
+    "answer": "Publicar respuesta",
+    "errors": {
+      "tooShort": "Escribe al menos {min} caracteres.",
+      "tooLong": "Es demasiado largo.",
+      "rateLimited": "Hiciste demasiadas preguntas seguidas. Intenta más tarde.",
+      "auth": "Inicia sesión para preguntar.",
+      "forbidden": "Solo un administrador puede responder.",
+      "generic": "No pudimos enviarla. Intenta de nuevo."
+    }
   }
 }

@@ -1,6 +1,14 @@
 "use client";
 
-import { LayoutDashboard, Package, Shapes, ShoppingBag, TicketPercent, Users } from "lucide-react";
+import {
+  LayoutDashboard,
+  MessageCircleQuestion,
+  Package,
+  Shapes,
+  ShoppingBag,
+  TicketPercent,
+  Users,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
@@ -12,6 +20,7 @@ const ITEMS = [
   { href: "/admin/products", key: "products", icon: Package, exact: false },
   { href: "/admin/categories", key: "categories", icon: Shapes, exact: false },
   { href: "/admin/coupons", key: "coupons", icon: TicketPercent, exact: false },
+  { href: "/admin/questions", key: "questions", icon: MessageCircleQuestion, exact: false },
   { href: "/admin/users", key: "users", icon: Users, exact: false },
 ] as const;
 

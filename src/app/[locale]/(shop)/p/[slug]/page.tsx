@@ -13,6 +13,13 @@ import { ProductGallery } from "@/features/catalog/product-gallery";
 import { ProductGrid } from "@/features/catalog/product-grid";
 import { PurchasePanel } from "@/features/catalog/purchase-panel";
 import { getCurrentUser } from "@/lib/auth";
+import { breadcrumbJsonLd, localizedAlternates, productJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
+import { isAdminUser } from "@/features/orders/queries";
+import { QuestionsSection } from "@/features/questions/questions-section";
+import { getProductReviews } from "@/features/reviews/queries";
+import { ReviewsSection } from "@/features/reviews/reviews-section";
+import { publicName } from "@/features/reviews/rules";
 import { FavoriteButton } from "@/features/account/favorite-button";
 import {
   getProductDetail,
@@ -41,10 +48,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   return {
     title: product.name[locale],
     description: product.description[locale],
-    alternates: {
-      canonical: `/${locale}${path}`,
-      languages: { es: `/es${path}`, en: `/en${path}` },
-    },
+    alternates: localizedAlternates(locale, path),
     openGraph: {
       type: "website",
       title: product.name[locale],
@@ -78,7 +82,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     getTranslations("Product"),
     getCurrentUser(),
   ]);
-  const favorited = user ? await isFavoriteProduct(user.id, product.id) : false;
+  const [favorited, isAdmin, { reviews }, tr] = await Promise.all([
+    user ? isFavoriteProduct(user.id, product.id) : false,
+    user ? isAdminUser(user.id) : false,
+    getProductReviews(product.id),
+    getTranslations("Reviews"),
+  ]);
+  const viewer = user ? { id: user.id, isAdmin } : null;
   const sku = Array.isArray(rawVariant) ? rawVariant[0] : rawVariant;
   const initialSelection =
     selectionFromSku(product.variants, sku) ?? getDefaultSelection(product.variants);
@@ -100,8 +110,40 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     { label: name },
   ];
 
+  const structuredData = [
+    productJsonLd({
+      locale,
+      slug: product.slug,
+      name,
+      description: product.description[locale],
+      brand: product.brand.name,
+      images: product.images.map((image) => image.url),
+      variants: product.variants.map((variant) => ({
+        sku: variant.sku,
+        price: variant.priceOverride ?? product.price,
+        inStock: variant.stock > 0,
+      })),
+      rating: { average: product.ratingAvg, count: product.ratingCount },
+      reviews: reviews.map((review) => ({
+        author: publicName(review.user.fullName, tr("anonymous")),
+        rating: review.rating,
+        title: review.title,
+        body: review.body,
+        date: review.createdAt,
+      })),
+    }),
+    breadcrumbJsonLd(locale, [
+      { name: "CamiloShop", path: "/" },
+      ...breadcrumbs.map((item) => ({
+        name: item.label,
+        path: typeof item.href === "string" ? item.href : `/p/${product.slug}`,
+      })),
+    ]),
+  ];
+
   return (
     <>
+      <JsonLd data={structuredData} />
       <RecordProductView
         item={{
           slug: product.slug,
@@ -194,6 +236,25 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             </section>
           </div>
         </div>
+      </Container>
+
+      <Container className="flex flex-col gap-12 py-8">
+        <Suspense fallback={<ProductGridSkeleton count={2} />}>
+          <ReviewsSection
+            productId={product.id}
+            slug={product.slug}
+            locale={locale}
+            viewer={viewer}
+          />
+        </Suspense>
+        <Suspense fallback={<ProductGridSkeleton count={2} />}>
+          <QuestionsSection
+            productId={product.id}
+            slug={product.slug}
+            locale={locale}
+            viewer={viewer}
+          />
+        </Suspense>
       </Container>
 
       <section aria-labelledby="related-title" className="py-12">

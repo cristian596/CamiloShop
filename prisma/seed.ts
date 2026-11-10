@@ -9,6 +9,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { createClient } from "@supabase/supabase-js";
 import { COLORS } from "../src/config/catalog";
+import { computeOrderTotals } from "../src/features/checkout/pricing";
 import { LEGAL_VERSION } from "../src/config/legal";
 import { ROOT_CATEGORIES } from "../src/config/categories";
 import en from "../messages/en.json";
@@ -172,8 +173,6 @@ async function seedProducts(categoryIds: Map<string, string>, brandIds: Map<stri
       price: product.price,
       compareAtPrice: product.compareAtPrice ?? null,
       isFeatured: product.isFeatured ?? false,
-      ratingAvg: product.ratingAvg,
-      ratingCount: product.ratingCount,
       soldCount: product.soldCount,
     };
 
@@ -285,6 +284,126 @@ async function seedDemoUser() {
   console.log("Demo user ready.");
 }
 
+/**
+ * Ratings come only from real reviews (no invented numbers): every product's
+ * ratingAvg/ratingCount is recomputed from the Review table.
+ */
+async function syncRatings() {
+  await prisma.$executeRaw`
+    UPDATE "Product" p
+    SET "ratingAvg" = coalesce(r.avg, 0), "ratingCount" = coalesce(r.count, 0)
+    FROM (SELECT pr.id, avg(rv.rating)::float AS avg, count(rv.id)::int AS count
+          FROM "Product" pr LEFT JOIN "Review" rv ON rv."productId" = pr.id
+          GROUP BY pr.id) r
+    WHERE p.id = r.id`;
+}
+
+/**
+ * Gives the demo customer one delivered order, so visitors can try the review
+ * form (only buyers of a delivered order may review). Created once; its stock
+ * and sales are historical, so nothing is reserved.
+ */
+async function seedDemoDeliveredOrder() {
+  const email = process.env.DEMO_USER_EMAIL;
+  if (!email) return;
+  const user = await prisma.profile.findUnique({
+    where: { email },
+    select: { id: true, addresses: { where: { label: "Casa" }, take: 1 } },
+  });
+  const address = user?.addresses[0];
+  if (!user || !address) return;
+  const delivered = await prisma.order.count({ where: { userId: user.id, status: "DELIVERED" } });
+  if (delivered > 0) return;
+
+  const variant = await prisma.productVariant.findFirst({
+    where: { product: { slug: "camiseta-essential-algodon" } },
+    orderBy: { sku: "asc" },
+    include: { product: true },
+  });
+  if (!variant) return;
+
+  const unitPrice = variant.priceOverride ?? variant.product.price;
+  const totals = computeOrderTotals({
+    lines: [{ unitPrice, quantity: 1 }],
+    discount: 0,
+    shippingPrice: 11_900,
+    freeShippingThreshold: 200_000,
+    taxRate: 0.19,
+  });
+  const [row] = await prisma.$queryRaw<{ number: string }[]>`
+    SELECT public.next_order_number() AS number`;
+  const number = row?.number;
+  if (!number) throw new Error("next_order_number() returned nothing");
+  const placedAt = new Date(Date.now() - 10 * DAY_MS);
+  const deliveredAt = new Date(Date.now() - 7 * DAY_MS);
+
+  await prisma.order.create({
+    data: {
+      number,
+      userId: user.id,
+      status: "DELIVERED",
+      paymentMethod: "COD",
+      subtotal: totals.subtotal,
+      discount: 0,
+      shippingCost: totals.shippingCost,
+      taxBase: totals.taxBase,
+      taxAmount: totals.taxAmount,
+      total: totals.total,
+      shippingAddress: {
+        label: address.label,
+        recipient: address.recipient,
+        phone: address.phone,
+        department: address.department,
+        city: address.city,
+        line1: address.line1,
+        line2: address.line2,
+        notes: address.notes,
+      },
+      termsAcceptedAt: placedAt,
+      termsVersion: LEGAL_VERSION,
+      createdAt: placedAt,
+      paidAt: placedAt,
+      shippedAt: new Date(Date.now() - 9 * DAY_MS),
+      deliveredAt,
+      items: {
+        create: {
+          productId: variant.productId,
+          variantId: variant.id,
+          productName: variant.product.nameEs,
+          size: variant.size,
+          color: variant.color,
+          unitPrice,
+          quantity: 1,
+          lineTotal: unitPrice,
+        },
+      },
+      payments: {
+        create: {
+          provider: "COD",
+          reference: `${number}-A1`,
+          method: "COD",
+          status: "APPROVED",
+          amountInCents: BigInt(totals.total) * 100n,
+        },
+      },
+      statusHistory: {
+        create: [
+          { from: null, to: "PENDING", note: "seed", createdAt: placedAt },
+          { from: "PENDING", to: "PAID", note: "seed", createdAt: placedAt },
+          {
+            from: "PAID",
+            to: "SHIPPED",
+            note: "seed",
+            createdAt: new Date(Date.now() - 9 * DAY_MS),
+          },
+          { from: "SHIPPED", to: "DELIVERED", note: "seed", createdAt: deliveredAt },
+        ],
+      },
+    },
+  });
+  console.log(`Demo delivered order ${number} created.`);
+}
+
 async function main() {
   await seedSettings();
   await seedCoupons();
@@ -293,6 +412,8 @@ async function main() {
   const brandIds = await seedBrands();
   await seedProducts(categoryIds, brandIds);
   await seedDemoUser();
+  await seedDemoDeliveredOrder();
+  await syncRatings();
 
   const [products, variants] = await Promise.all([
     prisma.product.count(),

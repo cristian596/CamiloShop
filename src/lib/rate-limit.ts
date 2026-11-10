@@ -12,6 +12,8 @@ export interface RateLimitRule {
 export const RATE_LIMITS = {
   demoLogin: { action: "demo-login", limit: 10, windowMs: 10 * 60_000 },
   register: { action: "register", limit: 5, windowMs: 60 * 60_000 },
+  review: { action: "review", limit: 10, windowMs: 60 * 60_000 },
+  question: { action: "question", limit: 5, windowMs: 60 * 60_000 },
 } satisfies Record<string, RateLimitRule>;
 
 async function sha256Hex(input: string): Promise<string> {
